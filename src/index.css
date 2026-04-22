@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #09090b;
+  --color-card-foreground: #fafafa;
+  --color-border: #27272a;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-primary: #ff6a00;
+  --color-primary-foreground: #ffffff;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background-color: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.font-bitcount {
+  font-family: "Bitcount Grid Double", "DotGothic16", monospace;
+  font-style: normal;
+}
