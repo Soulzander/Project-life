@@ -16,9 +16,20 @@ const projectImages = [
   "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80"
 ];
 
-// Load all Cyber images to use in the avatar slider
-const cyberImageModules = import.meta.glob<{default: string}>('/Cyber/*.{jpg,jpeg,png}', { eager: true });
-const avatarImages = Object.values(cyberImageModules).map(mod => mod.default);
+// Reference images directly from the public folder
+const avatarImages = [
+  "/Cyber/Aura_00.jpg",
+  "/Cyber/Aura_01.jpg",
+  "/Cyber/Aura_03.jpg",
+  "/Cyber/Aura_04.jpg",
+  "/Cyber/Black_00.jpg",
+  "/Cyber/Black_01.jpg",
+  "/Cyber/Black_03.jpg",
+  "/Cyber/Black_04.jpg",
+  "/Cyber/Sword_01.jpg",
+  "/Cyber/Sword_02.jpg",
+  "/Cyber/sword_00.jpg"
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Tasks");
