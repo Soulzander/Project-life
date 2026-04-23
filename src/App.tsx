@@ -1,29 +1,36 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera } from 'lucide-react';
-import mobileAvatarImg from '@/cyborg/777b13acf9d125805ada2364e9216c0d.jpg'; // Mobile
-import tabletAvatarImg from '@/cyborg/553556133e97d93a1dc53b6fff803981.jpg'; // Tablet
-import laptopAvatarImg from '@/cyborg/02615b7d22fb3978501cf67feacdb695.jpg'; // Laptop
-import project1 from '@/cyborg/82635b6cc2cadb93ec555350059233b7.jpg';
-import project2 from '@/cyborg/1ebefef99520a455674f5419bf8f87da.jpg';
-import project3 from '@/cyborg/27f97e8deb90a90b603090c740b1aaa1.jpg';
-import project4 from '@/cyborg/3e9d00754a6c915e7873a01e13692932.jpg';
-import project5 from '@/cyborg/47b1af417438567812ad38e1a78ce0ea.jpg';
-import bgImg1 from '@/background/c8ec7b58d3dd1f897adc3d8dffc960ad.jpg';
-import bgImg2 from '@/background/2b05a657649c4892239ac28514e405df.jpg';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState, useRef } from 'react';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
-// Load all cyborg images to use in the avatar slider
-const cyborgImageModules = import.meta.glob<{default: string}>('/cyborg/*.{jpg,jpeg,png}', { eager: true });
-const cyborgImages = Object.values(cyborgImageModules).map(mod => mod.default);
+// Use placeholder images for defaults in case local images are not found
+const fallbackMobileImg = "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&q=80";
+const fallbackTabletImg = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80";
+const fallbackLaptopImg = "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800&q=80";
+
+const projectImages = [
+  "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80",
+  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80",
+  "https://images.unsplash.com/photo-1531297122539-df3f530d961c?w=800&q=80",
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80"
+];
+
+// Load all Cyber images to use in the avatar slider
+const cyberImageModules = import.meta.glob<{default: string}>('/Cyber/*.{jpg,jpeg,png}', { eager: true });
+const avatarImages = Object.values(cyberImageModules).map(mod => mod.default);
 
 export default function App() {
-  const [bgIndex, setBgIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("Tasks");
-  const bgs = [bgImg1, bgImg2];
 
   // Custom Avatar State
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Set the default profile fallbacks using either uploaded images from Cyber or unsplash if not present
+  const mobileAvatarImg = avatarImages.length > 0 ? avatarImages[0] : fallbackMobileImg;
+  const tabletAvatarImg = avatarImages.length > 1 ? avatarImages[1] : fallbackTabletImg;
+  const laptopAvatarImg = avatarImages.length > 2 ? avatarImages[2] : fallbackLaptopImg;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,36 +59,171 @@ export default function App() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
+  // Daily Tasks State
+  type TaskDifficulty = 'easy' | 'medium' | 'hard';
+  interface DailyTask {
+    id: number;
+    title: string;
+    difficulty: TaskDifficulty;
+    done: boolean;
+    time: string;
+  }
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([
+    { id: 1, title: "Initial System Check", difficulty: "easy", done: false, time: "08:00 AM" },
+    { id: 2, title: "Data Migration", difficulty: "medium", done: false, time: "10:30 AM" },
+    { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
+  ]);
+  const [newDailyTaskTitle, setNewDailyTaskTitle] = useState("");
+  const [newDailyTaskDiff, setNewDailyTaskDiff] = useState<TaskDifficulty>("medium");
+  const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  const filteredDailyTasks = dailyTasks
+    .filter(task => {
+      if (taskFilter === 'active') return !task.done;
+      if (taskFilter === 'completed') return task.done;
+      return true;
+    })
+    .sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+
+  const toggleDailyTask = (id: number) => {
+    setDailyTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  };
+  
+  const addDailyTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDailyTaskTitle.trim()) return;
+    const newTask: DailyTask = {
+      id: Date.now(),
+      title: newDailyTaskTitle,
+      difficulty: newDailyTaskDiff,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      done: false
+    };
+    setDailyTasks(prev => [...prev, newTask]);
+    setNewDailyTaskTitle("");
+  };
+
+  const deleteDailyTask = (id: number) => {
+    setDailyTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const getDifficultyColor = (diff: TaskDifficulty) => {
+    switch(diff) {
+      case 'easy': return 'text-green-400 border-green-400/30 bg-green-400/10';
+      case 'medium': return 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10';
+      case 'hard': return 'text-red-400 border-red-400/30 bg-red-400/10';
+      default: return 'text-primary border-primary/30 bg-primary/10';
+    }
+  };
+
+  const calculateDailyPoints = () => {
+    return dailyTasks.reduce((acc, task) => {
+      if (!task.done) return acc;
+      if (task.difficulty === 'easy') return acc + 1;
+      if (task.difficulty === 'medium') return acc + 2;
+      if (task.difficulty === 'hard') return acc + 3;
+      return acc;
+    }, 0);
+  };
+
+  const calculateTotalDailyPoints = () => {
+    return dailyTasks.reduce((acc, task) => {
+      if (task.difficulty === 'easy') return acc + 1;
+      if (task.difficulty === 'medium') return acc + 2;
+      if (task.difficulty === 'hard') return acc + 3;
+      return acc;
+    }, 0);
+  };
+
+  // Weekly Must State & Lockdown Logic
+  const [isWeekActive, setIsWeekActive] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
+  const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
+  const [tempTaskTitle, setTempTaskTitle] = useState("");
+  const [lastResetDate, setLastResetDate] = useState(new Date().toDateString());
+  const [weekStartDate, setWeekStartDate] = useState<string | null>(null);
+
+  // Analysis State
+  const [analysisView, setAnalysisView] = useState<'graph' | 'block'>('graph');
+
+  const toggleMust = (id: number) => {
+    if (!isWeekActive) return;
+    setWeeklyMusts(prev => prev.map(m => m.id === id ? { ...m, done: !m.done } : m));
+  };
+
+  const addTempTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempTaskTitle.trim()) return;
+    const newTask = {
+      id: Date.now(),
+      title: tempTaskTitle,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      done: false
+    };
+    setTempTasks(prev => [...prev, newTask]);
+    setTempTaskTitle("");
+  };
+
+  const commitWeek = () => {
+    if (tempTasks.length === 0) return;
+    setWeeklyMusts(tempTasks);
+    setIsWeekActive(true);
+    setWeekStartDate(new Date().toDateString());
+    setIsModalOpen(false);
+  };
+
+  // Auto-reset logic for midnight and weekly rotation
   useEffect(() => {
     const interval = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % bgs.length);
-    }, 15000);
+      const todayStr = new Date().toDateString();
+      
+      // 1. Midnight Reset (Resets task 'done' status)
+      if (todayStr !== lastResetDate) {
+        setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
+        setDailyTasks(prev => prev.map(m => ({ ...m, done: false })));
+        setLastResetDate(todayStr);
+      }
+
+      // 2. 7-Day Expiry (Resets week lock)
+      if (weekStartDate) {
+        const start = new Date(weekStartDate).getTime();
+        const now = new Date().getTime();
+        const daysPassed = (now - start) / (1000 * 3600 * 24);
+        if (daysPassed >= 7) {
+          setIsWeekActive(false);
+          setWeeklyMusts([]);
+          setTempTasks([]);
+          setWeekStartDate(null);
+        }
+      }
+    }, 10000); // Check frequently to keep UI responsive
+
     return () => clearInterval(interval);
-  }, []);
+  }, [lastResetDate, weekStartDate]);
+
+  const [historicalData] = useState([
+    { day: 'Day 1', daily: 0, weekly: 0 },
+    { day: 'Day 2', daily: 0, weekly: 0 },
+    { day: 'Day 3', daily: 0, weekly: 0 },
+    { day: 'Day 4', daily: 0, weekly: 0 },
+    { day: 'Day 5', daily: 0, weekly: 0 },
+    { day: 'Day 6', daily: 0, weekly: 0 },
+  ]);
+
+  const todayDailyPct = calculateTotalDailyPoints() === 0 ? 0 : Math.round((calculateDailyPoints() / calculateTotalDailyPoints()) * 100);
+  const todayWeeklyPct = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
+
+  const analysisData = [
+    ...historicalData,
+    { day: 'Today', daily: todayDailyPct, weekly: todayWeeklyPct }
+  ];
+
+  const avgDailyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.daily, 0) / analysisData.length) || 0;
+  const avgWeeklyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.weekly, 0) / analysisData.length) || 0;
 
   return (
     <div className="min-h-screen text-foreground flex w-full relative overflow-hidden bg-black">
-      
-      {/* Animated Fixed Backgrounds */}
-      {bgs.map((bg, idx) => (
-        <motion.div
-          key={bg}
-          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${bg})` }}
-          initial={{ opacity: 0, scale: 1 }}
-          animate={{ 
-            opacity: bgIndex === idx ? 1 : 0,
-            scale: bgIndex === idx ? 1.05 : 1
-          }}
-          transition={{ 
-            opacity: { duration: 3, ease: 'easeInOut' },
-            scale: { duration: 20, ease: 'linear' }
-          }}
-        />
-      ))}
-
-      {/* Dimmed Overlay */}
-      <div className="fixed inset-0 z-0 bg-black/20" />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-screen w-full relative z-10 pt-6">
@@ -120,7 +262,7 @@ export default function App() {
                   </picture>
                 )}
                 {/* Optional dark overlay to ensure text legibility on top of the image */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-black/5 to-transparent" />
               </div>
 
               {/* Expanded User Profile Content */}
@@ -197,72 +339,188 @@ export default function App() {
             {/* TASKS VIEW (Default) */}
             {activeTab === "Tasks" && (
               <>
-                {/* Active Projects Gallery */}
-                <div className="md:col-span-2 card p-6 border border-border/50 flex flex-col gap-6 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">Active Enhancements</h2>
-                    <button className="text-sm text-primary hover:underline">View All</button>
+                {/* Daily Tasks */}
+                <div className="md:col-span-2 card p-6 border border-border/50 shadow-sm flex flex-col gap-6 h-full bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                  
+                  {/* Top Section */}
+                  <div className="flex flex-col gap-4 relative z-10 w-full max-w-[800px] mx-auto">
+                    {/* Input Area */}
+                    <form onSubmit={addDailyTask} className="flex flex-col sm:flex-row gap-2 w-full">
+                      <div className="relative flex-1">
+                        <input 
+                          type="text" 
+                          value={newDailyTaskTitle}
+                          onChange={(e) => setNewDailyTaskTitle(e.target.value)}
+                          placeholder="What needs to be done?"
+                          className="w-full bg-[#1A1A1A] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/20 transition-colors placeholder:text-muted-foreground/50 text-white"
+                        />
+                        <button 
+                          type="submit"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex justify-center items-center rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      
+                      {/* Difficulty Selector */}
+                      <div className="flex rounded-xl bg-[#1A1A1A] border border-white/10 p-1 self-start sm:self-auto">
+                        {(['easy', 'medium', 'hard'] as TaskDifficulty[]).map((diff) => (
+                          <button
+                            key={diff}
+                            type="button"
+                            onClick={() => setNewDailyTaskDiff(diff)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${newDailyTaskDiff === diff ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white/80'}`}
+                          >
+                            {diff}
+                          </button>
+                        ))}
+                      </div>
+                    </form>
+
+                    {/* Filter and Progress */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 gap-4 sm:gap-0">
+                      <div className="flex bg-[#1A1A1A] border border-white/10 rounded-lg p-1 w-full sm:w-auto">
+                         <button onClick={() => setTaskFilter('all')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'all' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>All</button>
+                         <button onClick={() => setTaskFilter('active')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'active' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>Active</button>
+                         <button onClick={() => setTaskFilter('completed')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'completed' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>Completed</button>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+                         <span className="text-[10px] text-muted-foreground flex items-center gap-2">
+                            Progress 
+                         </span>
+                         <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-white tracking-widest">{calculateDailyPoints()} / {calculateTotalDailyPoints()} points</span>
+                            <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <motion.div 
+                                    className="h-full bg-white/40"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${calculateTotalDailyPoints() === 0 ? 0 : (calculateDailyPoints() / calculateTotalDailyPoints()) * 100}%` }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                />
+                            </div>
+                         </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      { img: project1, name: "Neural Link", status: "Active" },
-                      { img: project2, name: "Optical Sync", status: "Review" },
-                      { img: project3, name: "Motor Control", status: "Planning" },
-                    ].map((p, i) => (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                        key={i} 
-                        className="group relative rounded-xl overflow-hidden aspect-video cursor-pointer border border-border/50"
-                      >
-                        <img src={p.img} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3">
-                          <span className="text-sm font-medium">{p.name}</span>
-                          <span className="text-xs text-primary">{p.status}</span>
+
+                  {/* Glow separator */}
+                  <div className="absolute top-[140px] left-1/2 -translate-x-1/2 w-[70%] sm:w-[50%] h-32 bg-blue-600/20 blur-[50px] sm:blur-[70px] pointer-events-none rounded-full" />
+
+                  {/* Task List */}
+                  <div className="flex-1 overflow-y-auto z-10 flex flex-col gap-2 rounded-xl bg-[#111111]/50 border border-white/5 p-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
+                    {filteredDailyTasks.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center flex-1 h-full text-center py-12">
+                          <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4">
+                             <LayoutGrid size={20} className="text-muted-foreground/60" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white mb-1">No tasks found</h3>
+                          <p className="text-xs text-muted-foreground/60">Start by adding a new dimension to your day.</p>
+                       </div>
+                    ) : (
+                      filteredDailyTasks.map((t) => (
+                        <div 
+                          key={t.id} 
+                          onClick={() => toggleDailyTask(t.id)}
+                          className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.done ? 'bg-primary/10 border-primary/30 opacity-40 shadow-none' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                        >
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.done ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-primary/50'}`}>
+                            {t.done && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckSquare size={14} className="text-white" /></motion.div>}
+                          </div>
+                          <div className="flex flex-col flex-1">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary/70 line-through decoration-primary/50' : 'text-white font-medium'}`}>{t.title}</span>
+                                <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
+                                  {t.difficulty}
+                                </span>
+                              </div>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); deleteDailyTask(t.id); }}
+                                className="text-muted-foreground/60 hover:text-red-400 transition-all p-1.5"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </motion.div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
-                {/* Tasks List */}
-                <div className="card p-6 border border-border/50 shadow-sm flex flex-col h-full">
+                {/* Tasks List (Weekly Must) */}
+                <div className="card p-6 border border-border/50 shadow-sm flex flex-col h-full bg-black/[0.55] backdrop-blur-sm relative">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-semibold">Daily Directives</h2>
-                    <button className="text-muted-foreground hover:text-foreground"><MoreHorizontal size={18} /></button>
+                    <div>
+                      <h2 className="text-lg font-bold flex items-center gap-2">
+                        <Zap size={18} className="text-primary" />
+                        Weekly Must
+                      </h2>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Current Sync: Phase 01</p>
+                    </div>
+                    {isWeekActive && weekStartDate && (
+                      <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded">
+                        WEEK LOCKED
+                      </span>
+                    )}
                   </div>
-                  <div className="flex flex-col gap-4 flex-1">
-                    {[
-                      { title: "Review telemetry logs", time: "10:00 AM", done: true },
-                      { title: "Calibrate optical sensors", time: "11:30 AM", done: false },
-                      { title: "Update firmware OS", time: "02:00 PM", done: false },
-                      { title: "Deep sleep cycle", time: "10:00 PM", done: false },
-                    ].map((t, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer">
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${t.done ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                          {t.done && <span className="w-2 h-2 bg-white rounded-sm"></span>}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className={`text-sm ${t.done ? 'line-through text-muted-foreground' : 'text-foreground font-medium'}`}>{t.title}</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> {t.time}</span>
-                        </div>
+
+                  {!isWeekActive ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                      <button 
+                        onClick={() => { setTempTasks([]); setIsModalOpen(true); }}
+                        className="px-8 py-3 bg-primary text-white rounded-full text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                      >
+                        <Zap size={16} />
+                        START WEEK
+                      </button>
+                      <p className="text-xs text-muted-foreground mt-4 max-w-[220px]">Program your 7-day directives. Once initiated, routine is locked until cycle expires.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-3 flex-1 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                        {[...weeklyMusts]
+                          .sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1))
+                          .map((t) => (
+                          <div 
+                            key={t.id} 
+                            onClick={() => toggleMust(t.id)}
+                            className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.done ? 'bg-primary/15 border-primary/50 shadow-none scale-100 opacity-40' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                          >
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.done ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-primary/50'}`}>
+                              {t.done && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckSquare size={14} className="text-white" /></motion.div>}
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary font-bold drop-shadow-[0_0_5px_rgba(255,106,0,0.3)]' : 'text-foreground font-medium'}`}>{t.title}</span>
+                              <div className="flex items-center gap-3">
+                                <span className={`text-[10px] flex items-center gap-1 transition-all ${t.done ? 'text-primary/80' : 'text-muted-foreground'}`}><Clock size={10} /> {t.time}</span>
+                                <span className="text-[10px] text-primary/60 font-mono tracking-tighter">PROTO-LOG: {t.id.toString().slice(-4)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      <div className="mt-6 pt-4 border-t border-white/5 text-center">
+                        <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-mono">
+                          Directives reset daily at 00:00
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Memory Bank (Gallery span) */}
                 <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm pt-8 pb-8">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-                    <h2 className="text-lg font-semibold">Memory Matrix</h2>
+                    <h2 className="text-lg font-bold">Memory Matrix</h2>
                     <div className="flex gap-2">
                       <button className="px-3 py-1 bg-primary text-white text-xs rounded-full font-medium">Classified</button>
                       <button className="px-3 py-1 border border-border text-muted-foreground hover:text-foreground text-xs rounded-full font-medium transition-colors">Public</button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {[project1, project2, project3, project4, project5].map((img, idx) => (
+                    {projectImages.map((img, idx) => (
                       <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border/50 cursor-pointer">
                         <img src={img} alt="Memory Log" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
                       </div>
@@ -328,12 +586,136 @@ export default function App() {
               </div>
             )}
 
-            {/* PLACEHOLDERS FOR OTHER VIEWS */}
             {activeTab === "Analysis" && (
-              <div className="md:col-span-3 card p-12 border border-border/50 shadow-sm flex flex-col items-center justify-center text-center">
-                <Activity size={48} className="text-muted-foreground mb-4 opacity-50" />
-                <h2 className="text-2xl font-bold mb-2">Analysis Engine</h2>
-                <p className="text-muted-foreground">Biometric and telemetry data parsing is currently offline.</p>
+              <div className="md:col-span-3 flex flex-col gap-6">
+                
+                {/* View Toggles */}
+                <div className="flex justify-start gap-2 bg-[#1A1A1A] border border-white/10 rounded-xl p-1 self-start">
+                  <button onClick={() => setAnalysisView('graph')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Graphs</button>
+                  <button onClick={() => setAnalysisView('block')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'block' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Block Craft</button>
+                </div>
+
+                {analysisView === 'graph' ? (
+                  <>
+                    {/* Daily Task Performance Graph */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                          <Target size={20} className="text-primary" />
+                          Daily Task Performance
+                        </h2>
+                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
+                      </div>
+                      <div className="h-[300px] w-full min-w-0 relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#ff6a00" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                            <RechartsTooltip 
+                              contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
+                              itemStyle={{ color: '#fff' }}
+                            />
+                            <Area type="monotone" dataKey="daily" name="Daily Completion %" stroke="#ff6a00" strokeWidth={3} fillOpacity={1} fill="url(#colorDaily)" activeDot={{ r: 6, fill: '#ff6a00', stroke: '#fff', strokeWidth: 2 }} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Weekly Must Performance Graph */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                          <Zap size={20} className="text-blue-500" />
+                          Weekly Must Performance
+                        </h2>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
+                      </div>
+                      <div className="h-[300px] w-full min-w-0 relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorWeekly" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                            <RechartsTooltip 
+                              contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
+                              itemStyle={{ color: '#fff' }}
+                            />
+                            <Area type="monotone" dataKey="weekly" name="Weekly Must Intact %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWeekly)" activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Daily Block Craft */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                          <Target size={20} className="text-primary" />
+                          Daily Block Craft
+                        </h2>
+                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 relative z-10 items-end justify-center h-[200px]">
+                        {analysisData.map((data, idx) => (
+                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2">
+                             <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
+                               <motion.div 
+                                 initial={{ height: 0 }}
+                                 animate={{ height: `${data.daily}%` }}
+                                 transition={{ duration: 0.8, delay: idx * 0.1, ease: 'easeOut' }}
+                                 className="w-full bg-gradient-to-t from-primary/80 to-primary/40 rounded-t-sm"
+                               />
+                             </div>
+                             <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
+                             <span className="text-[10px] font-bold text-white">{data.daily}%</span>
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Weekly Must Block Craft */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                          <Zap size={20} className="text-blue-500" />
+                          Weekly Block Craft
+                        </h2>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 relative z-10 items-end justify-center h-[200px]">
+                        {analysisData.map((data, idx) => (
+                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2">
+                             <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
+                               <motion.div 
+                                 initial={{ height: 0 }}
+                                 animate={{ height: `${data.weekly}%` }}
+                                 transition={{ duration: 0.8, delay: idx * 0.1, ease: 'easeOut' }}
+                                 className="w-full bg-gradient-to-t from-blue-500/80 to-blue-500/40 rounded-t-sm"
+                               />
+                             </div>
+                             <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
+                             <span className="text-[10px] font-bold text-white">{data.weekly}%</span>
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -352,14 +734,14 @@ export default function App() {
                 <p className="text-muted-foreground mb-6">Identity logs locked. Awaiting biometric signature.</p>
                 
                 <div className="w-full max-w-4xl mt-4 bg-black/20 rounded-xl p-6 border border-white/5">
-                  <h3 className="text-lg font-semibold mb-6 text-left flex items-center gap-2">
+                  <h3 className="text-lg font-bold mb-6 text-left flex items-center gap-2">
                     <User size={18} className="text-primary" />
                     Avatar Profile
                   </h3>
                   
-                  {/* Slider of all Cyborg Images */}
+                  {/* Slider of all Avatar Images */}
                   <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    {cyborgImages.map((img, idx) => (
+                    {avatarImages.map((img, idx) => (
                       <img
                         key={idx}
                         src={img}
@@ -397,6 +779,74 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {/* Modal for Weekly Must Setup */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#050505] border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh]"
+          >
+            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2 text-white">
+              <Zap className="text-primary" /> Start Weekly Cycle
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">Program instructions for the next 7 days. Once committed, tasks cannot be added or reset until the week expires.</p>
+            
+            <div className="flex-1 overflow-y-auto pr-2 mb-6 scrollbar-thin scrollbar-thumb-white/10 flex flex-col gap-2">
+              {tempTasks.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-white/10 rounded-xl">
+                  <p className="text-sm text-muted-foreground">No tasks queued.</p>
+                </div>
+              ) : (
+                tempTasks.map((t, idx) => (
+                  <div key={t.id} className="text-sm p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between items-center">
+                    <span>{idx + 1}. {t.title}</span>
+                    <button 
+                      onClick={() => setTempTasks(prev => prev.filter(task => task.id !== t.id))}
+                      className="text-red-400 hover:text-red-300 text-xs uppercase tracking-wide"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={addTempTask} className="flex gap-2 mb-6">
+              <input 
+                type="text" 
+                value={tempTaskTitle}
+                onChange={(e) => setTempTaskTitle(e.target.value)}
+                placeholder="Enter mandatory daily task..."
+                className="bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm flex-1 focus:outline-none focus:border-primary/50 transition-colors text-white"
+              />
+              <button 
+                type="submit"
+                className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-6 py-3 text-sm font-bold transition-all"
+              >
+                Queue
+              </button>
+            </form>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2.5 rounded-full text-sm font-medium hover:bg-white/5 transition-colors text-white"
+              >
+                Abort
+              </button>
+              <button 
+                onClick={commitWeek}
+                disabled={tempTasks.length === 0}
+                className="px-6 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary text-white rounded-full text-sm font-bold transition-all shadow-lg shadow-primary/20"
+              >
+                Commit Protocol
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
