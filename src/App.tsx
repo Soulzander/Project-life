@@ -1,6 +1,6 @@
 import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 // Use placeholder images for defaults in case local images are not found
@@ -52,7 +52,19 @@ export default function App() {
   };
 
   // Calendar State
+  interface CalendarEvent {
+    id: number;
+    title: string;
+    date: string; // ISO string or just YYYY-MM-DD
+  }
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>([
+    { id: 1, title: "System Audit", date: new Date(new Date().getFullYear(), new Date().getMonth(), 7).toISOString() },
+    { id: 2, title: "Log Sync", date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString() }
+  ]);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -269,6 +281,9 @@ export default function App() {
                       src={mobileAvatarImg} 
                       alt="Aiden Vance" 
                       className="w-full h-full object-cover object-left opacity-100" 
+                      onError={(e) => {
+                        e.currentTarget.src = fallbackMobileImg;
+                      }}
                     />
                   </picture>
                 )}
@@ -520,79 +535,132 @@ export default function App() {
                     </>
                   )}
                 </div>
-
-                {/* Memory Bank (Gallery span) */}
-                <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm pt-8 pb-8">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-                    <h2 className="text-lg font-bold">Memory Matrix</h2>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 bg-primary text-white text-xs rounded-full font-medium">Classified</button>
-                      <button className="px-3 py-1 border border-border text-muted-foreground hover:text-foreground text-xs rounded-full font-medium transition-colors">Public</button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {projectImages.map((img, idx) => (
-                      <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border/50 cursor-pointer">
-                        <img src={img} alt="Memory Log" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </>
             )}
 
             {/* CALENDAR VIEW */}
             {activeTab === "Calendar" && (
-              <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">Temporal Logs</h2>
-                  <div className="flex items-center gap-4">
-                    <button onClick={prevMonth} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
-                      <ChevronLeft size={16} />
-                    </button>
-                    <span className="text-lg font-semibold w-40 text-center uppercase tracking-widest text-primary">
-                      {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                    </span>
-                    <button onClick={nextMonth} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
-                      <ChevronRight size={16} />
-                    </button>
+              <div className="md:col-span-3 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                {/* Left Side: Calendar Control */}
+                <div className="lg:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <div>
+                      <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <Calendar className="text-primary" size={24} />
+                        Temporal Logs
+                      </h2>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Quantum Schedule Mapping</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-black/40 border border-white/5 rounded-full px-4 py-2">
+                      <button onClick={prevMonth} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-sm font-bold w-40 text-center uppercase tracking-widest text-primary">
+                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <button onClick={nextMonth} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-white">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden">
+                    {/* Days Header */}
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      <div key={day} className="bg-white/[0.02] p-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
+                        {day}
+                      </div>
+                    ))}
+                    
+                    {/* Empty Days Before */}
+                    {Array.from({ length: getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => (
+                      <div key={`empty-${i}`} className="bg-transparent min-h-[120px] p-2 border-r border-b border-white/5"></div>
+                    ))}
+
+                    {/* Calendar Days */}
+                    {Array.from({ length: getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => {
+                      const day = i + 1;
+                      const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                      const dateStr = dateObj.toISOString().split('T')[0];
+                      const isToday = new Date().toDateString() === dateObj.toDateString();
+                      
+                      const dayEvents = events.filter(e => e.date.startsWith(dateStr));
+
+                      return (
+                        <div 
+                          key={day} 
+                          onClick={() => {
+                            setSelectedDate(dateStr);
+                            setIsEventModalOpen(true);
+                          }}
+                          className={`bg-white/[0.01] min-h-[120px] p-3 border-r border-b border-white/5 transition-all group relative cursor-pointer hover:bg-white/[0.05] ${isToday ? 'bg-primary/5' : ''}`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                             <span className={`text-xs font-black p-1.5 rounded-md min-w-[28px] text-center transition-all ${isToday ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground group-hover:text-white'}`}>
+                               {day}
+                             </span>
+                             {dayEvents.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+                          </div>
+                          
+                          <div className="flex flex-col gap-1.5">
+                            {dayEvents.map(event => (
+                              <div key={event.id} className="text-[9px] bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 font-bold truncate tracking-tight">
+                                {event.title}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="absolute inset-x-0 bottom-1 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Plus size={12} className="text-primary/50" />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
-                  {/* Days Header */}
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="bg-black/60 p-3 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground backdrop-blur-md">
-                      {day}
-                    </div>
-                  ))}
-                  
-                  {/* Empty Days Before */}
-                  {Array.from({ length: getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => (
-                    <div key={`empty-${i}`} className="bg-black/40 min-h-[100px] p-2 backdrop-blur-md"></div>
-                  ))}
-
-                  {/* Calendar Days */}
-                  {Array.from({ length: getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => {
-                    const day = i + 1;
-                    const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
-                    // Just some dummy data to populate the calendar visually
-                    const hasEvent = day % 7 === 0;
-                    const hasTask = day % 4 === 0;
-
-                    return (
-                      <div key={day} className={`bg-black/60 min-h-[100px] p-3 backdrop-blur-md hover:bg-white/5 transition-colors group relative ${isToday ? 'ring-inset ring-2 ring-primary' : ''}`}>
-                        <span className={`text-sm font-bold ${isToday ? 'text-primary' : 'text-muted-foreground group-hover:text-white'}`}>
-                          {day}
-                        </span>
-                        
-                        <div className="mt-2 flex flex-col gap-1">
-                          {hasEvent && <div className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded border border-primary/30 truncate">System Audit</div>}
-                          {hasTask && <div className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/30 truncate">Log Sync</div>}
-                        </div>
+                {/* Right Side: Upcoming Events */}
+                <div className="flex flex-col gap-6">
+                   <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                         <h3 className="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
+                            <TrendingUp size={14} className="text-primary" />
+                            Upcoming Events
+                         </h3>
+                         <span className="text-[10px] text-muted-foreground font-mono">{events.length} LOGS</span>
                       </div>
-                    );
-                  })}
+                      
+                      <div className="flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                         {events
+                           .filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
+                           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                           .map(event => {
+                             const evDate = new Date(event.date);
+                             const diffTime = evDate.getTime() - new Date().getTime();
+                             const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+                             
+                             return (
+                               <div key={event.id} className="group p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all">
+                                  <div className="flex justify-between items-start mb-1">
+                                     <span className="text-xs font-bold text-white group-hover:text-primary transition-colors">{event.title}</span>
+                                     <span className="text-[9px] font-mono text-primary/60">{diffDays === 0 ? 'TODAY' : diffDays === 1 ? 'TOMORROW' : `IN ${diffDays} DAYS`}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                     <Calendar size={10} />
+                                     {evDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                  </div>
+                               </div>
+                             );
+                           })
+                         }
+                         {events.filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).length === 0 && (
+                            <div className="text-center py-8 opacity-50">
+                               <p className="text-xs">No upcoming protocols.</p>
+                            </div>
+                         )}
+                      </div>
+                   </div>
                 </div>
               </div>
             )}
@@ -759,6 +827,7 @@ export default function App() {
                         alt={`Avatar ${idx}`}
                         className={`w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-black/50 opacity-60 hover:opacity-100'}`}
                         onClick={() => setCustomAvatar(img)}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     ))}
                   </div>
@@ -856,6 +925,57 @@ export default function App() {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+      {/* Event Setup Modal */}
+      {isEventModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-[#0a0a0a] border border-white/10 p-8 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden"
+           >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+              
+              <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Setup Protocol</h2>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mb-6">Scheduling Event for {selectedDate}</p>
+              
+              <div className="space-y-4 mb-8">
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Protocol Designation</label>
+                   <input 
+                     autoFocus
+                     type="text"
+                     value={newEventTitle}
+                     onChange={(e) => setNewEventTitle(e.target.value)}
+                     placeholder="e.g. CORE SYSTEM RESTORE"
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                   />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                 <button 
+                  onClick={() => setIsEventModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-white/5 transition-all border border-white/5"
+                 >
+                   Abort
+                 </button>
+                 <button 
+                  disabled={!newEventTitle.trim()}
+                  onClick={() => {
+                    if(selectedDate && newEventTitle.trim()) {
+                      setEvents(prev => [...prev, { id: Date.now(), title: newEventTitle, date: selectedDate }]);
+                      setNewEventTitle("");
+                      setIsEventModalOpen(false);
+                    }
+                  }}
+                  className="flex-1 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg shadow-primary/20"
+                 >
+                   Initialize
+                 </button>
+              </div>
+           </motion.div>
         </div>
       )}
     </div>
