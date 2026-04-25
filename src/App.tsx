@@ -1,4 +1,4 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp } from 'lucide-react';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -16,19 +16,16 @@ const projectImages = [
   "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80"
 ];
 
-// Reference images directly from the public folder
+// Use high-quality cyberpunk/tech Unsplash images to guarantee they load
 const avatarImages = [
-  "/Cyber/Aura_00.jpg",
-  "/Cyber/Aura_01.jpg",
-  "/Cyber/Aura_03.jpg",
-  "/Cyber/Aura_04.jpg",
-  "/Cyber/Black_00.jpg",
-  "/Cyber/Black_01.jpg",
-  "/Cyber/Black_03.jpg",
-  "/Cyber/Black_04.jpg",
-  "/Cyber/Sword_01.jpg",
-  "/Cyber/Sword_02.jpg",
-  "/Cyber/sword_00.jpg"
+  "https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?q=80&w=600", // neon face
+  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=600", // retro tech
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600", // matrix code
+  "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=600", // code blocks
+  "https://images.unsplash.com/photo-1531297172864-74127c504022?q=80&w=600", // cyber UI
+  "https://images.unsplash.com/photo-1618367588411-dc30daed4742?q=80&w=600", // futuristic pattern
+  "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600", // microchip
+  "https://images.unsplash.com/photo-1515600103135-e115fd4fcb53?q=80&w=600", // tech network
 ];
 
 export default function App() {
@@ -56,15 +53,21 @@ export default function App() {
     id: number;
     title: string;
     date: string; // ISO string or just YYYY-MM-DD
+    protocolCode?: string;
   }
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    { id: 1, title: "System Audit", date: new Date(new Date().getFullYear(), new Date().getMonth(), 7).toISOString() },
-    { id: 2, title: "Log Sync", date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString() }
-  ]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isViewEventsModalOpen, setIsViewEventsModalOpen] = useState(false);
+  const [selectedEventDetails, setSelectedEventDetails] = useState<CalendarEvent | null>(null);
   const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventCode, setNewEventCode] = useState("");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const deleteEvent = (id: number) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+  };
 
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -258,73 +261,127 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Unified Profile & Focus Metrics */}
-            <div className="group bg-[#050505] rounded-xl p-0 md:col-span-3 grid grid-cols-12 border border-white/10 shadow-sm relative overflow-hidden items-center aspect-video">
+            <div className="group bg-[#050505] rounded-xl p-0 md:col-span-3 grid grid-cols-1 md:grid-cols-12 border border-white/10 shadow-sm relative overflow-hidden items-stretch">
               
-              {/* Background Avatar Image with Gradient Mask */}
-              <div 
-                className="absolute inset-y-0 left-0 w-[80%] md:w-[70%] lg:w-[65%] z-0 pointer-events-none"
-                style={{
-                  WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 100%)',
-                  maskImage: 'linear-gradient(to right, black 30%, transparent 100%)',
-                }}
-              >
+              {/* Left Side: Avatar Image (Roughly 1/3) */}
+              <div className="md:col-span-4 relative h-64 md:h-[400px]">
                 {customAvatar ? (
-                  <img src={customAvatar} alt="Custom Profile" className="w-full h-full object-cover object-left opacity-100" />
+                  <img src={customAvatar} alt="Custom Profile" className="w-full h-full object-cover object-center" />
                 ) : (
                   <picture>
-                    {/* Laptop Version (lg and up) */}
                     <source media="(min-width: 1024px)" srcSet={laptopAvatarImg} />
-                    {/* Tablet Version (md to lg) */}
                     <source media="(min-width: 768px)" srcSet={tabletAvatarImg} />
-                    {/* Mobile Version (default fallback) */}
                     <img 
                       src={mobileAvatarImg} 
                       alt="Aiden Vance" 
-                      className="w-full h-full object-cover object-left opacity-100" 
+                      className="w-full h-full object-cover object-center" 
                       onError={(e) => {
                         e.currentTarget.src = fallbackMobileImg;
                       }}
                     />
                   </picture>
                 )}
-                {/* Optional dark overlay to ensure text legibility on top of the image */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-black/5 to-transparent" />
               </div>
 
-              {/* Expanded User Profile Content */}
-              <div className="relative z-10 col-span-8 lg:col-span-9 p-4 sm:p-6 md:p-10 flex flex-col justify-end min-h-full">
-                <div className="mt-auto hidden sm:block">
-                  <h3 className="font-bold text-2xl sm:text-5xl lg:text-6xl tracking-tight text-white mb-1 sm:mb-2 drop-shadow-md">Aiden Vance</h3>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-primary font-bold uppercase tracking-[0.15em] mb-2 sm:mb-4 drop-shadow-md">Subject // Optima Prime</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-1 bg-black/50 backdrop-blur-md border border-white/10 rounded-md text-[8px] sm:text-[10px] md:text-xs text-white font-semibold tracking-wide shadow-xl">Level 42 Sync</span>
-                    <span className="px-2 py-1 bg-primary/20 backdrop-blur-md border border-primary/30 text-primary rounded-md text-[8px] sm:text-[10px] md:text-xs font-semibold tracking-wide uppercase shadow-xl">Active Protocol</span>
+              {/* Right Side: Content Area (Roughly 2/3) */}
+              <div className="md:col-span-8 bg-[#0a0a0f] p-6 md:p-8 flex flex-col">
+                {/* User Profile Content - Now on the right, next to image */}
+                <div className="mb-8">
+                  <div className="hidden sm:block">
+                    <div className="flex items-center gap-4 mb-2">
+                       <h3 className="font-black text-4xl lg:text-5xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">Aiden Vance</h3>
+                       <div className="bg-primary/10 border border-primary/20 p-2 rounded-xl mt-1 shadow-[0_0_15px_rgba(255,106,0,0.2)]">
+                         <Zap size={20} className="text-primary fill-primary/20" />
+                       </div>
+                    </div>
+                  </div>
+                  {/* Mobile version */}
+                  <div className="sm:hidden">
+                    <div className="flex items-center gap-3 mb-2">
+                       <h3 className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">Aiden Vance</h3>
+                       <div className="bg-primary/10 border border-primary/20 p-1.5 rounded-lg mt-1 shadow-[0_0_10px_rgba(255,106,0,0.2)]">
+                         <Zap size={16} className="text-primary fill-primary/20" />
+                       </div>
+                    </div>
                   </div>
                 </div>
-                {/* Mobile version of profile text to prevent clipping */}
-                <div className="mt-auto sm:hidden">
-                  <h3 className="font-bold text-xl tracking-tight text-white mb-1 drop-shadow-md">Aiden Vance</h3>
-                  <p className="text-[8px] text-primary font-bold uppercase tracking-wider mb-2 drop-shadow-md">Subject // Optima Prime</p>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span className="px-1.5 py-0.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-md text-[8px] text-white font-semibold tracking-wide shadow-xl">Lvl 42</span>
-                    <span className="px-1.5 py-0.5 bg-primary/20 backdrop-blur-md border border-primary/30 text-primary rounded-md text-[8px] font-semibold tracking-wide uppercase shadow-xl">Active</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Quick Metrics - Vertical Column on All Devices */}
-              <div className="relative z-10 col-span-4 lg:col-span-3 flex flex-col gap-2 sm:gap-4 md:gap-8 p-3 sm:p-6 md:p-10 w-full border-l border-white/10 bg-transparent items-end justify-center h-full">
-                <div className="flex flex-col gap-0.5 sm:gap-1 items-end text-right">
-                  <span className="text-[8px] sm:text-[10px] md:text-xs font-semibold uppercase tracking-wider text-muted-foreground drop-shadow-md">Focus</span>
-                  <span className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg">24.5<span className="hidden sm:inline text-xs sm:text-sm md:text-base text-primary font-bold ml-1 sm:ml-2 align-middle drop-shadow-none">↑ 12%</span></span>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:gap-1 items-end text-right">
-                  <span className="text-[8px] sm:text-[10px] md:text-xs font-semibold uppercase tracking-wider text-muted-foreground drop-shadow-md">Tasks</span>
-                  <span className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg">14<span className="hidden sm:inline text-xs sm:text-sm md:text-base text-primary font-bold ml-1 sm:ml-2 align-middle drop-shadow-none">↑ 3%</span></span>
-                </div>
-                <div className="flex flex-col gap-0.5 sm:gap-1 items-end text-right">
-                  <span className="text-[8px] sm:text-[10px] md:text-xs font-semibold uppercase tracking-wider text-muted-foreground drop-shadow-md">Health</span>
-                  <span className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg">98%<span className="hidden md:inline text-[10px] md:text-xs text-muted-foreground ml-2 align-middle font-bold uppercase tracking-wider border border-white/10 px-1 py-0.5 rounded drop-shadow-none bg-black/30">Optimal</span></span>
+                {/* Daily Energy Section - Below the name */}
+                <div className="flex flex-col flex-1">
+                  <div className="flex items-center gap-2 mb-4 text-white flex-shrink-0">
+                    <HeartPulse size={18} className="text-primary" />
+                    <span className="font-bold text-lg">Life Stats</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* HP Stat */}
+                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
+                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
+                          <Heart size={48} className="text-primary" />
+                       </div>
+                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
+                         <Heart size={16} className="text-primary fill-primary/20" />
+                         <span className="tracking-widest uppercase text-xs">HP</span>
+                         <span className="ml-auto text-primary font-mono text-xs">60%</span>
+                       </div>
+                       <div className="flex h-1.5 gap-1 w-full relative z-10">
+                         {[...Array(10)].map((_, i) => (
+                           <div key={i} className={`flex-1 rounded-full ${i < 6 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                         ))}
+                       </div>
+                    </div>
+
+                    {/* Focus Stat */}
+                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
+                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
+                          <Target size={48} className="text-primary" />
+                       </div>
+                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
+                         <Target size={16} className="text-primary" />
+                         <span className="tracking-widest uppercase text-xs">Focus</span>
+                         <span className="ml-auto text-primary font-mono text-xs">40%</span>
+                       </div>
+                       <div className="flex h-1.5 gap-1 w-full relative z-10">
+                         {[...Array(10)].map((_, i) => (
+                           <div key={i} className={`flex-1 rounded-full ${i < 4 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                         ))}
+                       </div>
+                    </div>
+
+                    {/* Physical Stat */}
+                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
+                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
+                          <Dumbbell size={48} className="text-primary" />
+                       </div>
+                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
+                         <Dumbbell size={16} className="text-primary" />
+                         <span className="tracking-widest uppercase text-xs">Physical</span>
+                         <span className="ml-auto text-primary font-mono text-xs">50%</span>
+                       </div>
+                       <div className="flex h-1.5 gap-1 w-full relative z-10">
+                         {[...Array(10)].map((_, i) => (
+                           <div key={i} className={`flex-1 rounded-full ${i < 5 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                         ))}
+                       </div>
+                    </div>
+
+                    {/* Mental Stat */}
+                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
+                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
+                          <Brain size={48} className="text-primary" />
+                       </div>
+                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
+                         <Brain size={16} className="text-primary" />
+                         <span className="tracking-widest uppercase text-xs">Mental</span>
+                         <span className="ml-auto text-primary font-mono text-xs">30%</span>
+                       </div>
+                       <div className="flex h-1.5 gap-1 w-full relative z-10">
+                         {[...Array(10)].map((_, i) => (
+                           <div key={i} className={`flex-1 rounded-full ${i < 3 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                         ))}
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -419,7 +476,7 @@ export default function App() {
                             <span className="text-xs font-bold text-white tracking-widest">{calculateDailyPoints()} / {calculateTotalDailyPoints()} points</span>
                             <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <motion.div 
-                                    className="h-full bg-white/40"
+                                    className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${calculateTotalDailyPoints() === 0 ? 0 : (calculateDailyPoints() / calculateTotalDailyPoints()) * 100}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
@@ -535,6 +592,20 @@ export default function App() {
                     </>
                   )}
                 </div>
+
+                {/* Life Protocol Block (Tasks Bottom) */}
+                <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col mt-2 min-h-[200px]">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
+                      <HeartPulse size={20} className="text-primary" />
+                      Life Protocol
+                    </h3>
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+                    <p className="text-muted-foreground text-sm font-medium tracking-wide">No active protocols assigned.</p>
+                  </div>
+                </div>
               </>
             )}
 
@@ -575,7 +646,7 @@ export default function App() {
                     
                     {/* Empty Days Before */}
                     {Array.from({ length: getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => (
-                      <div key={`empty-${i}`} className="bg-transparent min-h-[120px] p-2 border-r border-b border-white/5"></div>
+                      <div key={`empty-${i}`} className="bg-transparent min-h-[90px] p-2 border-r border-b border-white/5"></div>
                     ))}
 
                     {/* Calendar Days */}
@@ -592,12 +663,12 @@ export default function App() {
                           key={day} 
                           onClick={() => {
                             setSelectedDate(dateStr);
-                            setIsEventModalOpen(true);
+                            setIsViewEventsModalOpen(true);
                           }}
-                          className={`bg-white/[0.01] min-h-[120px] p-3 border-r border-b border-white/5 transition-all group relative cursor-pointer hover:bg-white/[0.05] ${isToday ? 'bg-primary/5' : ''}`}
+                          className={`bg-white/[0.01] min-h-[90px] p-2 border-r border-b border-white/5 transition-all group relative cursor-pointer hover:bg-white/[0.05] ${isToday ? 'bg-primary/5' : ''}`}
                         >
-                          <div className="flex justify-between items-start mb-2">
-                             <span className={`text-xs font-black p-1.5 rounded-md min-w-[28px] text-center transition-all ${isToday ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground group-hover:text-white'}`}>
+                          <div className="flex justify-between items-start mb-1">
+                             <span className={`text-[10px] sm:text-xs font-black p-1 sm:p-1.5 rounded-md min-w-[24px] text-center transition-all ${isToday ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted-foreground group-hover:text-white'}`}>
                                {day}
                              </span>
                              {dayEvents.length > 0 && <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
@@ -623,15 +694,23 @@ export default function App() {
                 {/* Right Side: Upcoming Events */}
                 <div className="flex flex-col gap-6">
                    <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex-1 flex flex-col">
-                      <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
-                            <TrendingUp size={14} className="text-primary" />
+                      <div className="flex items-center justify-between mb-6">
+                         <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
+                            <TrendingUp size={20} className="text-primary" />
                             Upcoming Events
                          </h3>
-                         <span className="text-[10px] text-muted-foreground font-mono">{events.length} LOGS</span>
+                         <div className="flex items-center gap-2">
+                           <span className="text-xs text-primary font-mono font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 leading-none flex items-center justify-center">{events.length} LOGS</span>
+                           <button 
+                             onClick={() => setIsEventModalOpen(true)}
+                             className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-primary/50 shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+                           >
+                             <Plus size={14} />
+                           </button>
+                         </div>
                       </div>
                       
-                      <div className="flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                      <div className="flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
                          {events
                            .filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -641,16 +720,32 @@ export default function App() {
                              const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
                              
                              return (
-                               <div key={event.id} className="group p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all">
-                                  <div className="flex justify-between items-start mb-1">
-                                     <span className="text-xs font-bold text-white group-hover:text-primary transition-colors">{event.title}</span>
-                                     <span className="text-[9px] font-mono text-primary/60">{diffDays === 0 ? 'TODAY' : diffDays === 1 ? 'TOMORROW' : `IN ${diffDays} DAYS`}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                     <Calendar size={10} />
-                                     {evDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                  </div>
-                               </div>
+                               <div 
+                                 key={event.id} 
+                                 onClick={() => setSelectedEventDetails(event)}
+                                 className="group p-3 sm:p-4 rounded-xl border border-white/5 bg-black/40 hover:bg-white/5 transition-all flex flex-col gap-2 relative overflow-hidden cursor-pointer"
+                               >
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-colors" />
+                                  <div className="flex justify-between items-start pl-2">
+                                      <div className="flex flex-col">
+                                         <span className="text-sm font-bold text-white group-hover:text-primary transition-colors tracking-tight">{event.title}</span>
+                                         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mt-1">
+                                            <Calendar size={12} className="text-primary/70" />
+                                            {evDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                         </div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-2 relative z-10">
+                                         <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] sm:text-[10px] font-bold rounded shadow-sm border border-primary/20 uppercase tracking-widest">{diffDays === 0 ? 'TODAY' : diffDays === 1 ? 'TOMORROW' : `IN ${diffDays} DAYS`}</span>
+                                         <button 
+                                           onClick={(e) => { e.stopPropagation(); deleteEvent(event.id); }}
+                                           className="p-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 hover:text-orange-400 rounded-md transition-all shadow-[0_0_8px_rgba(249,115,22,0.15)]"
+                                           title="Delete Log"
+                                         >
+                                           <Trash2 size={14} />
+                                         </button>
+                                      </div>
+                                   </div>
+                                </div>
                              );
                            })
                          }
@@ -927,6 +1022,90 @@ export default function App() {
           </motion.div>
         </div>
       )}
+      {/* View Events Modal */}
+      {isViewEventsModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4" onClick={() => setIsViewEventsModalOpen(false)}>
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-[#0a0a0a] border border-white/10 p-8 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]"
+             onClick={e => e.stopPropagation()}
+           >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+              
+              <div className="flex justify-between items-start mb-6">
+                 <div>
+                    <h2 className="text-2xl font-black text-white mb-1 tracking-tight">Logs</h2>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Date: {selectedDate}</p>
+                 </div>
+                 <button onClick={() => setIsViewEventsModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
+                    &times;
+                 </button>
+              </div>
+
+              <div className="space-y-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                 {events.filter(e => e.date.startsWith(selectedDate || "")).map(event => (
+                   <div key={event.id} className="p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col gap-1 relative overflow-hidden group hover:bg-white/[0.04] transition-all">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-colors" />
+                      <div className="pl-2 flex flex-col gap-1">
+                        <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">{event.title}</span>
+                        {event.protocolCode && (
+                          <span className="text-xs text-muted-foreground whitespace-pre-wrap">{event.protocolCode}</span>
+                        )}
+                        <span className="text-[10px] uppercase font-mono text-primary/60 mt-1">Scheduled Protocol</span>
+                      </div>
+                      <button 
+                         onClick={() => deleteEvent(event.id)}
+                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 rounded-md transition-all sm:opacity-0 sm:group-hover:opacity-100"
+                         title="Delete Log"
+                       >
+                         <Trash2 size={16} />
+                       </button>
+                   </div>
+                 ))}
+                 {events.filter(e => e.date.startsWith(selectedDate || "")).length === 0 && (
+                   <div className="py-8 text-center opacity-50">
+                     <p className="text-xs text-white">No protocols scheduled for this date.</p>
+                   </div>
+                 )}
+              </div>
+           </motion.div>
+        </div>
+      )}
+
+      {/* View Event Details Modal */}
+      {selectedEventDetails && (
+        <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4" onClick={() => setSelectedEventDetails(null)}>
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-[#0a0a0a] border border-white/10 p-6 rounded-3xl w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col gap-4"
+             onClick={e => e.stopPropagation()}
+           >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+              
+              <div className="flex justify-between items-start">
+                 <div>
+                    <h2 className="text-xl font-black text-white mb-1 tracking-tight">{selectedEventDetails.title}</h2>
+                    <div className="flex items-center gap-2 text-xs font-medium text-primary/80 uppercase tracking-widest font-mono">
+                      <Calendar size={12} />
+                      {new Date(selectedEventDetails.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                 </div>
+                 <button onClick={() => setSelectedEventDetails(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
+                    &times;
+                 </button>
+              </div>
+
+              {selectedEventDetails.protocolCode && (
+                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed mt-2">
+                    {selectedEventDetails.protocolCode}
+                 </div>
+              )}
+           </motion.div>
+        </div>
+      )}
+
       {/* Event Setup Modal */}
       {isEventModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
@@ -938,7 +1117,7 @@ export default function App() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
               
               <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Setup Protocol</h2>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mb-6">Scheduling Event for {selectedDate}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mb-6">Schedule New Event</p>
               
               <div className="space-y-4 mb-8">
                 <div>
@@ -952,21 +1131,47 @@ export default function App() {
                      className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
                    />
                 </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Date</label>
+                   <input 
+                     type="date"
+                     value={newEventDate}
+                     onChange={(e) => setNewEventDate(e.target.value)}
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                     style={{ colorScheme: "dark" }}
+                   />
+                </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Protocol Code / Summary</label>
+                   <textarea 
+                     value={newEventCode}
+                     onChange={(e) => setNewEventCode(e.target.value)}
+                     placeholder="Brief protocol or event description..."
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium min-h-[80px] resize-none scrollbar-thin scrollbar-thumb-white/10"
+                   />
+                </div>
               </div>
 
               <div className="flex gap-3">
                  <button 
-                  onClick={() => setIsEventModalOpen(false)}
+                  onClick={() => {
+                    setIsEventModalOpen(false);
+                    setNewEventTitle("");
+                    setNewEventDate("");
+                    setNewEventCode("");
+                  }}
                   className="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-white/5 transition-all border border-white/5"
                  >
                    Abort
                  </button>
                  <button 
-                  disabled={!newEventTitle.trim()}
+                  disabled={!newEventTitle.trim() || !newEventDate}
                   onClick={() => {
-                    if(selectedDate && newEventTitle.trim()) {
-                      setEvents(prev => [...prev, { id: Date.now(), title: newEventTitle, date: selectedDate }]);
+                    if(newEventTitle.trim() && newEventDate) {
+                      setEvents(prev => [...prev, { id: Date.now(), title: newEventTitle, date: newEventDate, protocolCode: newEventCode.trim() }]);
                       setNewEventTitle("");
+                      setNewEventDate("");
+                      setNewEventCode("");
                       setIsEventModalOpen(false);
                     }
                   }}
