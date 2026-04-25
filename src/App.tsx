@@ -1,4 +1,4 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse } from 'lucide-react';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -173,6 +173,22 @@ export default function App() {
   // Analysis State
   const [analysisView, setAnalysisView] = useState<'graph' | 'block'>('graph');
 
+  // Life Protocol State
+  const [lifeProtocol, setLifeProtocol] = useState({
+    sleep: false,
+    meditation: false,
+    sunlight: false,
+    walk: false,
+  });
+
+  const getStatPieces = (base: number, done: boolean) => done ? base + 1 : base;
+
+  const getBarColorClass = (filled: number) => {
+    if (filled <= 3) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
+    if (filled >= 7) return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]';
+    return 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]';
+  };
+
   const toggleMust = (id: number) => {
     if (!isWeekActive) return;
     setWeeklyMusts(prev => prev.map(m => m.id === id ? { ...m, done: !m.done } : m));
@@ -208,6 +224,12 @@ export default function App() {
       if (todayStr !== lastResetDate) {
         setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
         setDailyTasks(prev => prev.map(m => ({ ...m, done: false })));
+        setLifeProtocol({
+          sleep: false,
+          meditation: false,
+          sunlight: false,
+          walk: false,
+        });
         setLastResetDate(todayStr);
       }
 
@@ -322,11 +344,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Heart size={16} className="text-primary fill-primary/20" />
                          <span className="tracking-widest uppercase text-xs">HP</span>
-                         <span className="ml-auto text-primary font-mono text-xs">60%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.sleep)}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < 6 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.sleep) ? getBarColorClass(getStatPieces(5, lifeProtocol.sleep)) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -339,11 +361,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Target size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Focus</span>
-                         <span className="ml-auto text-primary font-mono text-xs">40%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.meditation)}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < 4 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.meditation) ? getBarColorClass(getStatPieces(5, lifeProtocol.meditation)) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -356,11 +378,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Dumbbell size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Physical</span>
-                         <span className="ml-auto text-primary font-mono text-xs">50%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.walk)}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < 5 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.walk) ? getBarColorClass(getStatPieces(5, lifeProtocol.walk)) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -373,11 +395,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Brain size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Mental</span>
-                         <span className="ml-auto text-primary font-mono text-xs">30%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.sunlight)}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < 3 ? 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]' : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.sunlight) ? getBarColorClass(getStatPieces(5, lifeProtocol.sunlight)) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -596,14 +618,36 @@ export default function App() {
                 {/* Life Protocol Block (Tasks Bottom) */}
                 <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col mt-2 min-h-[200px]">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
-                      <HeartPulse size={20} className="text-primary" />
-                      Life Protocol
-                    </h3>
+                    <div className="flex flex-col">
+                      <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
+                        <HeartPulse size={20} className="text-primary" />
+                        Life Protocol
+                      </h3>
+                      <p className="text-muted-foreground text-[10px] tracking-widest uppercase mt-1">Bare Minimum to do.</p>
+                    </div>
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
-                    <p className="text-muted-foreground text-sm font-medium tracking-wide">No active protocols assigned.</p>
+                  <div className="flex flex-col gap-3">
+                    {[
+                      { key: 'sleep', label: '7 Hour Sleep', icon: Heart, color: 'text-primary' },
+                      { key: 'meditation', label: '15 Minutes Meditation', icon: Target, color: 'text-primary' },
+                      { key: 'sunlight', label: '10-20 Minutes of Sunlight', icon: Brain, color: 'text-primary' },
+                      { key: 'walk', label: '20 Minutes Walk / 1 Km run', icon: Dumbbell, color: 'text-primary' }
+                    ].map((task) => (
+                      <div 
+                        key={task.key}
+                        onClick={() => setLifeProtocol(prev => ({ ...prev, [task.key]: !prev[task.key as keyof typeof lifeProtocol] }))}
+                        className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary/10 border-primary/30' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
+                      >
+                         <div className={`w-5 h-5 rounded border-[1.5px] flex items-center justify-center transition-colors ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary border-primary' : 'border-white/20 leading-none'}`}>
+                           {lifeProtocol[task.key as keyof typeof lifeProtocol] && <Check size={14} className="text-black font-bold stroke-[3px]" />}
+                         </div>
+                         <task.icon size={16} className={task.color} />
+                         <span className={`text-sm font-semibold tracking-wide ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'text-white' : 'text-white/70'}`}>
+                           {task.label}
+                         </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </>
