@@ -10,7 +10,7 @@
   --color-border: #27272a;
   --color-muted: #27272a;
   --color-muted-foreground: #a1a1aa;
-  --color-primary: #ff6a00;
+  --color-primary: var(--app-primary, #ff6a00);
   --color-primary-foreground: #ffffff;
 }
 

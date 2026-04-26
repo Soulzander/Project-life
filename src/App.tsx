@@ -1,7 +1,9 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check } from 'lucide-react';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check, Upload, Quote } from 'lucide-react';
+import JSZip from 'jszip';
 import { motion } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import quotesData from './quotes.json';
 
 // Use placeholder images for defaults in case local images are not found
 const fallbackMobileImg = "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&q=80";
@@ -165,12 +167,88 @@ const LifeRadar = ({ lifeProtocol }: { lifeProtocol: { sleep: boolean, meditatio
   );
 };
 
+const QuoteOfTheDay = () => {
+  const [quote, setQuote] = useState("");
+
+  useEffect(() => {
+    const updateQuote = () => {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const now = new Date();
+      // Use local date effectively starting at midnight
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // Fixed epoch to calculate predictable day differences
+      const epoch = new Date(2024, 0, 1);
+      const diffTime = today.getTime() - epoch.getTime();
+      const diffDays = Math.floor(diffTime / msPerDay);
+      
+      const index = Math.abs(diffDays) % quotesData.length;
+      setQuote((quotesData[index] as any)?.Quote || "Keep pushing forward.");
+    };
+
+    updateQuote();
+    
+    // Setup interval to potentially refresh the quote if crossing midnight while tab is open
+    // Check every minute if the date changed
+    let lastDay = new Date().getDate();
+    const interval = setInterval(() => {
+      const currentDay = new Date().getDate();
+      if (currentDay !== lastDay) {
+        lastDay = currentDay;
+        updateQuote();
+      }
+    }, 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!quote) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 md:p-6 relative overflow-hidden group shadow-lg"
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
+      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600" />
+      
+      <div className="relative flex items-start gap-4">
+        <div className="bg-orange-500/20 border border-orange-500/30 p-2 rounded-xl mt-1 shadow-[0_0_15px_rgba(249,115,22,0.2)] flex-shrink-0">
+          <Quote size={20} className="text-orange-500 fill-orange-500/20" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-xs font-bold text-orange-500/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+            Quote of the Day
+            <span className="w-8 h-[1px] bg-orange-500/30 inline-block"></span>
+          </h3>
+          <p className="text-base md:text-lg text-orange-50 indent-0 leading-relaxed font-serif italic drop-shadow-sm">
+            "{quote}"
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("Tasks");
 
   // Custom Avatar State
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Operative State
+  const [operativeName, setOperativeName] = useState("ALPHA-GUEST");
+  const [notifications, setNotifications] = useState(true);
+  const [appThemeColor, setAppThemeColor] = useState("#ff6a00");
+  const [showQuoteBox, setShowQuoteBox] = useState(true);
+  const dataImportRef = useRef<HTMLInputElement>(null);
+
+  // Apply Theme Color
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-primary', appThemeColor);
+  }, [appThemeColor]);
 
   // Set the default profile fallbacks using either uploaded images from Cyber or unsplash if not present
   const mobileAvatarImg = avatarImages.length > 0 ? avatarImages[0] : fallbackMobileImg;
@@ -353,6 +431,59 @@ export default function App() {
     setProjects(prev => prev.filter(p => p.id !== id));
   };
 
+  const exportData = async () => {
+    const data = {
+      operativeName,
+      notifications,
+      appThemeColor,
+      customAvatar,
+      dailyTasks,
+      events,
+      projects
+    };
+    const jsonStr = JSON.stringify(data, null, 2);
+    
+    const zip = new JSZip();
+    zip.file('operative_data.json', jsonStr);
+    const content = await zip.generateAsync({ type: 'blob' });
+    
+    // Download Blob
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup_archive.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const zip = new JSZip();
+    zip.loadAsync(file).then(async (archive) => {
+      const jsonFile = archive.file('operative_data.json');
+      if (jsonFile) {
+        const text = await jsonFile.async('string');
+        try {
+          const data = JSON.parse(text);
+          if (data.operativeName !== undefined) setOperativeName(data.operativeName);
+          if (data.notifications !== undefined) setNotifications(data.notifications);
+          if (data.appThemeColor !== undefined) setAppThemeColor(data.appThemeColor);
+          if (data.customAvatar !== undefined) setCustomAvatar(data.customAvatar);
+          if (data.dailyTasks !== undefined) setDailyTasks(data.dailyTasks);
+          if (data.events !== undefined) setEvents(data.events);
+          if (data.projects !== undefined) setProjects(data.projects);
+        } catch (err) {
+          console.error("Failed to parse archive data", err);
+        }
+      }
+    }).catch(err => {
+      console.error("Failed to read archive", err);
+    });
+    if (dataImportRef.current) dataImportRef.current.value = "";
+  };
+
   const getStatPieces = (base: number, done: boolean) => done ? base + 1 : base;
 
   const getBarColorClass = (filled: number) => {
@@ -451,6 +582,8 @@ export default function App() {
         {/* Dashboard Content Container */}
         <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-6">
           
+          {showQuoteBox && <QuoteOfTheDay />}
+
           {/* Bento Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
@@ -458,7 +591,7 @@ export default function App() {
             <div className="group bg-[#050505] rounded-xl p-0 md:col-span-3 grid grid-cols-1 md:grid-cols-12 border border-white/10 shadow-sm relative overflow-hidden items-stretch">
               
               {/* Left Side: Avatar Image (Roughly 1/3) */}
-              <div className="md:col-span-4 relative h-64 md:h-[400px]">
+              <div className="md:col-span-4 relative aspect-[3/4]">
                 {customAvatar ? (
                   <img src={customAvatar} alt="Custom Profile" className="w-full h-full object-cover object-center" />
                 ) : (
@@ -467,7 +600,7 @@ export default function App() {
                     <source media="(min-width: 768px)" srcSet={tabletAvatarImg} />
                     <img 
                       src={mobileAvatarImg} 
-                      alt="Aiden Vance" 
+                      alt={operativeName} 
                       className="w-full h-full object-cover object-center" 
                       onError={(e) => {
                         e.currentTarget.src = fallbackMobileImg;
@@ -483,7 +616,7 @@ export default function App() {
                 <div className="mb-8">
                   <div className="hidden sm:block">
                     <div className="flex items-center gap-4 mb-2">
-                       <h3 className="font-black text-4xl lg:text-5xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">Aiden Vance</h3>
+                       <h3 className="font-black text-4xl lg:text-5xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">{operativeName}</h3>
                        <div className="bg-primary/10 border border-primary/20 p-2 rounded-xl mt-1 shadow-[0_0_15px_rgba(255,106,0,0.2)]">
                          <Zap size={20} className="text-primary fill-primary/20" />
                        </div>
@@ -492,7 +625,7 @@ export default function App() {
                   {/* Mobile version */}
                   <div className="sm:hidden">
                     <div className="flex items-center gap-3 mb-2">
-                       <h3 className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">Aiden Vance</h3>
+                       <h3 className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">{operativeName}</h3>
                        <div className="bg-primary/10 border border-primary/20 p-1.5 rounded-lg mt-1 shadow-[0_0_10px_rgba(255,106,0,0.2)]">
                          <Zap size={16} className="text-primary fill-primary/20" />
                        </div>
@@ -1126,19 +1259,19 @@ export default function App() {
 
             {activeTab === "Mega Projects" && (
               <div className="md:col-span-3 space-y-6">
-                <div className="flex justify-between items-center bg-[#0a0a0a] p-6 rounded-2xl border border-white/5 shadow-lg">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-[#0a0a0a] p-5 md:p-6 rounded-2xl border border-white/5 shadow-lg">
                   <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-3">
-                      <Box className="text-primary" size={28} />
+                    <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
+                      <Box className="text-primary w-6 h-6 md:w-7 md:h-7" />
                       Mega Projects
                     </h2>
-                    <p className="text-sm text-muted-foreground mt-1 tracking-wide">Manage overarching system directives and primary mission architectures.</p>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-2 tracking-wide">Manage overarching system directives and primary mission architectures.</p>
                   </div>
                   <button
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-5 py-2.5 rounded-xl font-semibold tracking-wider text-sm transition-all"
+                    className="flex items-center gap-2 shrink-0 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-4 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl font-semibold tracking-wider text-xs md:text-sm transition-all"
                   >
-                    <Plus size={18} />
+                    <Plus className="w-4 h-4 md:w-5 md:h-5" />
                     INITIALIZE
                   </button>
                 </div>
@@ -1193,51 +1326,155 @@ export default function App() {
             )}
 
             {activeTab === "Account" && (
-              <div className="md:col-span-3 card p-8 sm:p-12 border border-border/50 shadow-sm flex flex-col items-center justify-center text-center">
-                <User size={48} className="text-muted-foreground mb-4 opacity-50" />
-                <h2 className="text-2xl font-bold mb-2">Subject Account</h2>
-                <p className="text-muted-foreground mb-6">Identity logs locked. Awaiting biometric signature.</p>
+              <div className="md:col-span-3 space-y-6">
                 
-                <div className="w-full max-w-4xl mt-4 bg-black/20 rounded-xl p-6 border border-white/5">
-                  <h3 className="text-lg font-bold mb-6 text-left flex items-center gap-2">
-                    <User size={18} className="text-primary" />
-                    Avatar Profile
-                  </h3>
-                  
-                  {/* Slider of all Avatar Images */}
-                  <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    {avatarImages.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt={`Avatar ${idx}`}
-                        className={`w-20 h-20 sm:w-28 sm:h-28 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-black/50 opacity-60 hover:opacity-100'}`}
-                        onClick={() => setCustomAvatar(img)}
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                {/* Header */}
+                <div className="flex items-center gap-4 bg-[#0a0a0a] p-5 md:p-6 rounded-2xl border border-white/5 shadow-lg">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide">Operative Profile</h2>
+                    <p className="text-sm text-primary font-mono mt-1 uppercase tracking-widest">{operativeName}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                   {/* Operative Alias Box */}
+                   <div className="card p-6 border border-border/50 shadow-sm flex flex-col bg-[#050505]">
+                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                        <User size={18} className="text-primary" />
+                        Operative Alias
+                      </h3>
+                      <input 
+                        type="text" 
+                        value={operativeName}
+                        onChange={(e) => setOperativeName(e.target.value)}
+                        placeholder="Enter Alias..."
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
                       />
-                    ))}
-                  </div>
+                   </div>
 
-                  <div className="flex items-center gap-4 w-full mt-6 mb-6">
-                     <div className="h-px bg-white/10 flex-1"></div>
-                     <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex-shrink-0">OR CUSTOM UPLOAD</span>
-                     <div className="h-px bg-white/10 flex-1"></div>
-                  </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {/* Avatar / Identity Selection */}
+                       <div className="card p-6 border border-border/50 shadow-sm flex flex-col bg-[#050505] overflow-hidden">
+                          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                            <Camera size={18} className="text-primary" />
+                            Visual Identifier
+                          </h3>
+                          <div className="flex overflow-x-auto gap-3 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                              {avatarImages.map((img, idx) => (
+                                <img
+                                  key={idx}
+                                  src={img}
+                                  alt={`Avatar ${idx}`}
+                                  className={`w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'}`}
+                                  onClick={() => setCustomAvatar(img)}
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              ))}
+                          </div>
+                          
+                          <div className="mt-auto">
+                            <div className="flex items-center gap-4 w-full my-4">
+                               <div className="h-px bg-white/10 flex-1"></div>
+                               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex-shrink-0">OR CUSTOM UPLOAD</span>
+                               <div className="h-px bg-white/10 flex-1"></div>
+                            </div>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              className="hidden" 
+                              ref={fileInputRef} 
+                              onChange={handleImageUpload} 
+                            />
+                            <button 
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full"
+                            >
+                              <Camera size={16} />
+                              <span>Upload Custom Identity</span>
+                            </button>
+                          </div>
+                       </div>
 
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleImageUpload} 
-                  />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-medium text-white transition-all cursor-pointer mx-auto"
-                  >
-                    <Camera size={16} />
-                    <span>Upload Profile Photo</span>
-                  </button>
+                       {/* System Preferences & Data Management */}
+                       <div className="card p-6 border border-border/50 shadow-sm flex flex-col gap-6 bg-[#050505]">
+                          <div>
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                              <Settings size={18} className="text-primary" />
+                              System Preferences
+                            </h3>
+                            
+                             {/* Notifications */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">Telemetry Broadcasts</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Receive system status updates</p>
+                               </div>
+                               <button 
+                                 onClick={() => setNotifications(!notifications)}
+                                 className={`w-11 h-6 rounded-full transition-colors relative ${notifications ? 'bg-primary' : 'bg-white/10'}`}
+                               >
+                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifications ? 'right-1' : 'left-1'}`}></div>
+                               </button>
+                            </div>
+
+                             {/* Quote Box Toggle */}
+                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">Quote of the Day</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle daily motivation box</p>
+                               </div>
+                               <button 
+                                 onClick={() => setShowQuoteBox(!showQuoteBox)}
+                                 className={`w-11 h-6 rounded-full transition-colors relative ${showQuoteBox ? 'bg-primary' : 'bg-white/10'}`}
+                               >
+                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showQuoteBox ? 'right-1' : 'left-1'}`}></div>
+                               </button>
+                            </div>
+
+                             {/* Theme Color Input */}
+                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">System Color Protocol</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Define core aesthetic spectrum</p>
+                               </div>
+                               <input 
+                                 type="color" 
+                                 value={appThemeColor}
+                                 onChange={(e) => setAppThemeColor(e.target.value)}
+                                 className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
+                               />
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                              <Activity size={18} className="text-primary" />
+                              Data Portability
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                               <input 
+                                 type="file" 
+                                 accept=".zip" 
+                                 className="hidden" 
+                                 ref={dataImportRef} 
+                                 onChange={importData} 
+                               />
+                               <button 
+                                onClick={() => dataImportRef.current?.click()}
+                                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-all text-sm font-medium text-white/90"
+                               >
+                                 <Upload size={16} /> Ingest Data Archive
+                               </button>
+                               <button 
+                                onClick={exportData}
+                                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-all text-sm font-medium text-white/90"
+                               >
+                                 <Download size={16} /> Extract Data Archive
+                               </button>
+                            </div>
+                          </div>
+                       </div>
+                   </div>
                 </div>
               </div>
             )}
