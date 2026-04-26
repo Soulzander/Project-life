@@ -1,7 +1,7 @@
 import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 // Use placeholder images for defaults in case local images are not found
 const fallbackMobileImg = "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=800&q=80";
@@ -27,6 +27,143 @@ const avatarImages = [
   "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600", // microchip
   "https://images.unsplash.com/photo-1515600103135-e115fd4fcb53?q=80&w=600", // tech network
 ];
+
+const RadarGridRing = ({ value, colorClass, strokeWidth = 1 }: { value: number, colorClass: string, strokeWidth?: number }) => {
+  const maxRadius = 85;
+  const r = (value / 10) * maxRadius;
+  const cx = 100;
+  const cy = 100;
+  
+  // 4 points (top, right, bottom, left)
+  const points = [
+    `${cx},${cy - r}`, 
+    `${cx + r},${cy}`, 
+    `${cx},${cy + r}`, 
+    `${cx - r},${cy}`,
+  ].join(" ");
+  
+  return (
+    <polygon
+      points={points}
+      fill="none"
+      strokeWidth={strokeWidth}
+      className={colorClass}
+    />
+  );
+};
+
+const LifeRadar = ({ lifeProtocol }: { lifeProtocol: { sleep: boolean, meditation: boolean, sunlight: boolean, walk: boolean } }) => {
+  const cx = 100;
+  const cy = 100;
+  const maxRadius = 85;
+  
+  // Base 5, completing the task adds 1 piece (to 6 out of 10)
+  const getValue = (active: boolean) => active ? 6 : 5;
+  
+  const dataPoints = [
+    { value: getValue(lifeProtocol.sleep), angle: -Math.PI / 2, label: 'HP' },
+    { value: getValue(lifeProtocol.meditation), angle: 0, label: 'Focus' },
+    { value: getValue(lifeProtocol.sunlight), angle: Math.PI / 2, label: 'Mental' },
+    { value: getValue(lifeProtocol.walk), angle: Math.PI, label: 'Physical' },
+  ];
+  
+  const polygonPoints = dataPoints.map(p => {
+    const r = (p.value / 10) * maxRadius;
+    return `${cx + r * Math.cos(p.angle)},${cy + r * Math.sin(p.angle)}`;
+  }).join(" ");
+
+  return (
+    <div className="relative w-full aspect-square flex items-center justify-center p-4 min-h-[220px]">
+      <svg viewBox="0 0 200 200" className="w-full h-full max-w-[240px] overflow-visible">
+        <defs>
+          <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Background Grid Rings (1 through 10) */}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(level => (
+          <RadarGridRing 
+            key={level} 
+            value={level} 
+            colorClass={level === 5 || level === 10 ? "stroke-white/30" : "stroke-white/10"} 
+            strokeWidth={1} 
+          />
+        ))}
+
+        {/* Radar Axes */}
+        {[ -Math.PI/2, 0, Math.PI/2, Math.PI ].map((a, i) => (
+          <line key={i} x1={cx} y1={cy} x2={cx + maxRadius*Math.cos(a)} y2={cy + maxRadius*Math.sin(a)} stroke="rgba(255,255,255,0.1)" strokeWidth={1} strokeDasharray="2 2" />
+        ))}
+
+        {/* Dynamic Data Polygon */}
+        <polygon 
+          points={polygonPoints} 
+          fill="rgba(255, 106, 0, 0.4)" 
+          stroke="#ff6a00" 
+          strokeWidth={2} 
+          filter="url(#neon-glow)"
+          style={{ transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1)" }}
+        />
+
+        {/* Data Vertices */}
+        {dataPoints.map((p, i) => {
+          const r = (p.value / 10) * maxRadius;
+          return (
+            <circle 
+              key={i} 
+              cx={cx + r * Math.cos(p.angle)} 
+              cy={cy + r * Math.sin(p.angle)} 
+              r={3} 
+              fill="#fff"
+              stroke="#ff6a00"
+              strokeWidth={1.5}
+              style={{ transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1)" }}
+            />
+          );
+        })}
+
+        {/* Labels */}
+        {dataPoints.map((p, i) => {
+          const labelDist = maxRadius + 15;
+          let lx = cx + labelDist * Math.cos(p.angle);
+          let ly = cy + labelDist * Math.sin(p.angle);
+          
+          let textAnchor = "middle";
+          if (Math.abs(Math.cos(p.angle)) > 0.1) {
+            textAnchor = Math.cos(p.angle) > 0 ? "start" : "end";
+          }
+          
+          let dy = 3;
+          if (Math.sin(p.angle) > 0.5) dy = 8;
+          else if (Math.sin(p.angle) < -0.5) dy = -2;
+
+          return (
+            <text 
+              key={`label-${i}`} 
+              x={lx} 
+              y={ly + dy} 
+              fill="rgba(255,255,255,0.8)" 
+              fontSize="9" 
+              textAnchor={textAnchor} 
+              fontWeight="bold" 
+              className="tracking-widest uppercase"
+            >
+              {p.label}
+            </text>
+          );
+        })}
+
+        {/* Center Node */}
+        <circle cx={cx} cy={cy} r={2} fill="white" className="opacity-50" />
+      </svg>
+    </div>
+  );
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Tasks");
@@ -180,6 +317,41 @@ export default function App() {
     sunlight: false,
     walk: false,
   });
+
+  // Mega Projects State
+  interface MegaProject {
+    id: number;
+    name: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    lead: string; // Theme: Prime Architect
+    nodes: string; // Theme: Assisting Nodes
+  }
+  const [projects, setProjects] = useState<MegaProject[]>([]);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [newProject, setNewProject] = useState<Partial<MegaProject>>({});
+
+  const addProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProject.name) return;
+    const project: MegaProject = {
+      id: Date.now(),
+      name: newProject.name || "",
+      description: newProject.description || "",
+      startDate: newProject.startDate || "",
+      endDate: newProject.endDate || "",
+      lead: newProject.lead || "",
+      nodes: newProject.nodes || ""
+    };
+    setProjects(prev => [...prev, project]);
+    setNewProject({});
+    setIsProjectModalOpen(false);
+  };
+
+  const deleteProject = (id: number) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+  };
 
   const getStatPieces = (base: number, done: boolean) => done ? base + 1 : base;
 
@@ -414,7 +586,7 @@ export default function App() {
                 { icon: CheckSquare, label: "Tasks" },
                 { icon: Calendar, label: "Calendar" },
                 { icon: Activity, label: "Analysis" },
-                { icon: Box, label: "Mega Space" },
+                { icon: Box, label: "Mega Projects" },
                 { icon: User, label: "Account" }
               ].map((Action, i) => {
                 const isActive = activeTab === Action.label;
@@ -468,13 +640,13 @@ export default function App() {
                       </div>
                       
                       {/* Difficulty Selector */}
-                      <div className="flex rounded-xl bg-[#1A1A1A] border border-white/10 p-1 self-start sm:self-auto">
+                      <div className="flex rounded-xl bg-[#1A1A1A] border border-white/10 p-1 w-full sm:w-auto self-start sm:self-auto">
                         {(['easy', 'medium', 'hard'] as TaskDifficulty[]).map((diff) => (
                           <button
                             key={diff}
                             type="button"
                             onClick={() => setNewDailyTaskDiff(diff)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${newDailyTaskDiff === diff ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white/80'}`}
+                            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${newDailyTaskDiff === diff ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white/80'}`}
                           >
                             {diff}
                           </button>
@@ -616,38 +788,47 @@ export default function App() {
                 </div>
 
                 {/* Life Protocol Block (Tasks Bottom) */}
-                <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col mt-2 min-h-[200px]">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex flex-col">
-                      <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
-                        <HeartPulse size={20} className="text-primary" />
-                        Life Protocol
-                      </h3>
-                      <p className="text-muted-foreground text-[10px] tracking-widest uppercase mt-1">Bare Minimum to do.</p>
+                <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row mt-2 min-h-[200px] gap-8">
+                  {/* Left: Protocol List */}
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex flex-col">
+                        <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
+                          <HeartPulse size={20} className="text-primary" />
+                          Life Protocol
+                        </h3>
+                        <p className="text-muted-foreground text-[10px] tracking-widest uppercase mt-1">Bare Minimum to do.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      {[
+                        { key: 'sleep', label: '7 Hour Sleep', icon: Heart, color: 'text-primary' },
+                        { key: 'meditation', label: '15 Minutes Meditation', icon: Target, color: 'text-primary' },
+                        { key: 'sunlight', label: '10-20 Minutes of Sunlight', icon: Brain, color: 'text-primary' },
+                        { key: 'walk', label: '20 Minutes Walk / 1 Km run', icon: Dumbbell, color: 'text-primary' }
+                      ].map((task) => (
+                        <div 
+                          key={task.key}
+                          onClick={() => setLifeProtocol(prev => ({ ...prev, [task.key]: !prev[task.key as keyof typeof lifeProtocol] }))}
+                          className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary/10 border-primary/30' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
+                        >
+                           <div className={`w-5 h-5 rounded border-[1.5px] flex items-center justify-center transition-colors ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary border-primary' : 'border-white/20 leading-none'}`}>
+                             {lifeProtocol[task.key as keyof typeof lifeProtocol] && <Check size={14} className="text-black font-bold stroke-[3px]" />}
+                           </div>
+                           <task.icon size={16} className={task.color} />
+                           <span className={`text-sm font-semibold tracking-wide ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'text-white' : 'text-white/70'}`}>
+                             {task.label}
+                           </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3">
-                    {[
-                      { key: 'sleep', label: '7 Hour Sleep', icon: Heart, color: 'text-primary' },
-                      { key: 'meditation', label: '15 Minutes Meditation', icon: Target, color: 'text-primary' },
-                      { key: 'sunlight', label: '10-20 Minutes of Sunlight', icon: Brain, color: 'text-primary' },
-                      { key: 'walk', label: '20 Minutes Walk / 1 Km run', icon: Dumbbell, color: 'text-primary' }
-                    ].map((task) => (
-                      <div 
-                        key={task.key}
-                        onClick={() => setLifeProtocol(prev => ({ ...prev, [task.key]: !prev[task.key as keyof typeof lifeProtocol] }))}
-                        className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary/10 border-primary/30' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
-                      >
-                         <div className={`w-5 h-5 rounded border-[1.5px] flex items-center justify-center transition-colors ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary border-primary' : 'border-white/20 leading-none'}`}>
-                           {lifeProtocol[task.key as keyof typeof lifeProtocol] && <Check size={14} className="text-black font-bold stroke-[3px]" />}
-                         </div>
-                         <task.icon size={16} className={task.color} />
-                         <span className={`text-sm font-semibold tracking-wide ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'text-white' : 'text-white/70'}`}>
-                           {task.label}
-                         </span>
-                      </div>
-                    ))}
+                  {/* Right: Radar Chart */}
+                  <div className="w-full md:w-72 lg:w-80 flex flex-col items-center justify-center relative border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 pl-0 md:pl-6">
+                    <h4 className="absolute top-0 md:top-auto md:-top-4 text-[10px] text-muted-foreground uppercase tracking-widest font-mono text-center w-full">Stats Radar</h4>
+                    <LifeRadar lifeProtocol={lifeProtocol} />
                   </div>
                 </div>
               </>
@@ -680,8 +861,9 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden">
-                    {/* Days Header */}
+                  <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
+                    <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden min-w-[700px] md:min-w-0">
+                      {/* Days Header */}
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                       <div key={day} className="bg-white/[0.02] p-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
                         {day}
@@ -732,6 +914,7 @@ export default function App() {
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 </div>
 
@@ -824,8 +1007,9 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
                       </div>
-                      <div className="h-[300px] w-full min-w-0 relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
+                      <div className="h-[300px] w-full min-w-0 relative z-10 overflow-x-auto overflow-y-hidden pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
+                        <div className="min-w-[600px] md:min-w-0 h-full">
+                          <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
                               <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
@@ -840,9 +1024,10 @@ export default function App() {
                               contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
                               itemStyle={{ color: '#fff' }}
                             />
-                            <Area type="monotone" dataKey="daily" name="Daily Completion %" stroke="#ff6a00" strokeWidth={3} fillOpacity={1} fill="url(#colorDaily)" activeDot={{ r: 6, fill: '#ff6a00', stroke: '#fff', strokeWidth: 2 }} />
-                          </AreaChart>
-                        </ResponsiveContainer>
+                              <Area type="monotone" dataKey="daily" name="Daily Completion %" stroke="#ff6a00" strokeWidth={3} fillOpacity={1} fill="url(#colorDaily)" activeDot={{ r: 6, fill: '#ff6a00', stroke: '#fff', strokeWidth: 2 }} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
 
@@ -855,8 +1040,9 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
                       </div>
-                      <div className="h-[300px] w-full min-w-0 relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
+                      <div className="h-[300px] w-full min-w-0 relative z-10 overflow-x-auto overflow-y-hidden pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
+                        <div className="min-w-[600px] md:min-w-0 h-full">
+                          <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
                               <linearGradient id="colorWeekly" x1="0" y1="0" x2="0" y2="1">
@@ -871,9 +1057,10 @@ export default function App() {
                               contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
                               itemStyle={{ color: '#fff' }}
                             />
-                            <Area type="monotone" dataKey="weekly" name="Weekly Must Intact %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWeekly)" activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
-                          </AreaChart>
-                        </ResponsiveContainer>
+                              <Area type="monotone" dataKey="weekly" name="Weekly Must Intact %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWeekly)" activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
                   </>
@@ -888,9 +1075,9 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
                       </div>
-                      <div className="flex flex-wrap gap-4 relative z-10 items-end justify-center h-[200px]">
+                      <div className="flex md:flex-wrap gap-4 relative z-10 items-end justify-start md:justify-center h-[200px] overflow-x-auto pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
                         {analysisData.map((data, idx) => (
-                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2">
+                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2 flex-shrink-0">
                              <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
                                <motion.div 
                                  initial={{ height: 0 }}
@@ -915,9 +1102,9 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
                       </div>
-                      <div className="flex flex-wrap gap-4 relative z-10 items-end justify-center h-[200px]">
+                      <div className="flex md:flex-wrap gap-4 relative z-10 items-end justify-start md:justify-center h-[200px] overflow-x-auto pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
                         {analysisData.map((data, idx) => (
-                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2">
+                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2 flex-shrink-0">
                              <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
                                <motion.div 
                                  initial={{ height: 0 }}
@@ -937,11 +1124,71 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === "Mega Space" && (
-              <div className="md:col-span-3 card p-12 border border-border/50 shadow-sm flex flex-col items-center justify-center text-center">
-                <Box size={48} className="text-muted-foreground mb-4 opacity-50" />
-                <h2 className="text-2xl font-bold mb-2">Mega Space Environment</h2>
-                <p className="text-muted-foreground">Virtual staging area is preparing geometry...</p>
+            {activeTab === "Mega Projects" && (
+              <div className="md:col-span-3 space-y-6">
+                <div className="flex justify-between items-center bg-[#0a0a0a] p-6 rounded-2xl border border-white/5 shadow-lg">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                      <Box className="text-primary" size={28} />
+                      Mega Projects
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1 tracking-wide">Manage overarching system directives and primary mission architectures.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsProjectModalOpen(true)}
+                    className="flex items-center gap-2 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-5 py-2.5 rounded-xl font-semibold tracking-wider text-sm transition-all"
+                  >
+                    <Plus size={18} />
+                    INITIALIZE
+                  </button>
+                </div>
+
+                {projects.length === 0 ? (
+                  <div className="card p-12 border border-border/50 shadow-sm flex flex-col items-center justify-center text-center">
+                    <Box size={48} className="text-muted-foreground mb-4 opacity-50" />
+                    <h3 className="text-xl font-bold mb-2">No Active Architectures</h3>
+                    <p className="text-muted-foreground max-w-md">Initialize a new Mega Project to allocate resources and assign assisting nodes to critical operations.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {projects.map((proj) => (
+                      <div key={proj.id} className="bg-[#111111] border border-white/10 rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg flex flex-col h-full relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/50 group-hover:bg-primary transition-colors"></div>
+                        <div className="flex justify-between items-start mb-4 pl-3">
+                          <h3 className="text-xl font-bold text-white leading-tight">{proj.name}</h3>
+                          <div className="px-2 py-1 bg-white/5 text-muted-foreground border border-white/10 rounded text-[10px] font-mono uppercase tracking-widest ml-2 flex-shrink-0">Active</div>
+                        </div>
+                        <p className="text-muted-foreground/80 text-sm mb-6 flex-1 pl-3 line-clamp-3 leading-relaxed">{proj.description}</p>
+                        
+                        <div className="space-y-3 bg-black/40 p-4 rounded-xl border border-white/5 ml-3">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono font-bold tracking-widest uppercase">Cycle Status</span>
+                            <span className="text-xs text-white/90 font-medium">
+                              {proj.startDate || '?'} <span className="text-muted-foreground/50 mx-1">→</span> {proj.endDate || '?'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono font-bold tracking-widest uppercase">Prime Architect</span>
+                            <span className="text-xs text-primary font-bold tracking-wide">{proj.lead || 'SYSTEM_AUTO'}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono font-bold tracking-widest uppercase">Assisting Nodes</span>
+                            <span className="text-xs text-white/80 truncate max-w-[180px]">{proj.nodes || 'UNASSIGNED'}</span>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                          <button 
+                            onClick={() => deleteProject(proj.id)}
+                            className="flex items-center gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider transition-colors border border-green-500/20"
+                          >
+                            <Check size={14} />
+                            Complete Archive
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1219,6 +1466,122 @@ export default function App() {
                       setIsEventModalOpen(false);
                     }
                   }}
+                  className="flex-1 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg shadow-primary/20"
+                 >
+                   Initialize
+                 </button>
+              </div>
+           </motion.div>
+        </div>
+      )}
+      {/* Project Modal */}
+      {isProjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+           <motion.div 
+             initial={{ opacity: 0, scale: 0.9, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             className="bg-[#0a0a0a] border border-white/10 p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl relative overflow-hidden"
+           >
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary/50 via-primary to-primary/50"></div>
+              
+              <div className="flex items-center gap-3 mb-6">
+                 <div className="p-3 bg-primary/10 rounded-xl">
+                   <Box className="text-primary" size={24} />
+                 </div>
+                 <div>
+                   <h3 className="text-xl font-bold text-white tracking-wide uppercase">Initialize Project</h3>
+                   <p className="text-sm text-primary/80 font-mono">NEW ARCHITECTURE PARAMETERS</p>
+                 </div>
+              </div>
+
+              <form onSubmit={addProject} className="space-y-4 mb-6">
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Project Designation</label>
+                   <input 
+                     autoFocus
+                     type="text" 
+                     required
+                     value={newProject.name || ""}
+                     onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                     placeholder="Operation nomenclature..."
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                   />
+                </div>
+                
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Description</label>
+                   <textarea 
+                     rows={2}
+                     value={newProject.description || ""}
+                     onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                     placeholder="Brief operational summary..."
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium resize-none scrollbar-thin scrollbar-thumb-white/10"
+                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Start Cycle</label>
+                    <input 
+                      type="date"
+                      value={newProject.startDate || ""}
+                      onChange={(e) => setNewProject({...newProject, startDate: e.target.value})}
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                      style={{ colorScheme: "dark" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">End Cycle</label>
+                    <input 
+                      type="date"
+                      value={newProject.endDate || ""}
+                      onChange={(e) => setNewProject({...newProject, endDate: e.target.value})}
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                      style={{ colorScheme: "dark" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Prime Architect</label>
+                     <input 
+                       type="text" 
+                       value={newProject.lead || ""}
+                       onChange={(e) => setNewProject({...newProject, lead: e.target.value})}
+                       placeholder="e.g. ALPHA-01"
+                       className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                     />
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Assisting Nodes</label>
+                     <input 
+                       type="text" 
+                       value={newProject.nodes || ""}
+                       onChange={(e) => setNewProject({...newProject, nodes: e.target.value})}
+                       placeholder="e.g. BETA, GAMMA"
+                       className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                     />
+                  </div>
+                </div>
+                
+                {/* Submit button inside form for Enter 'submit' accessibility */}
+                <button type="submit" className="hidden"></button>
+              </form>
+
+              <div className="flex gap-3">
+                 <button 
+                  onClick={() => {
+                    setIsProjectModalOpen(false);
+                    setNewProject({});
+                  }}
+                  className="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-white/5 transition-all border border-white/5"
+                 >
+                   Abort
+                 </button>
+                 <button 
+                  onClick={addProject}
+                  disabled={!newProject.name?.trim()}
                   className="flex-1 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 shadow-lg shadow-primary/20"
                  >
                    Initialize
