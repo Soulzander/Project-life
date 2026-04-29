@@ -1,6 +1,6 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check, Upload, Quote } from 'lucide-react';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check, Upload, Quote, ChevronUp, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import quotesData from './quotes.json';
@@ -20,17 +20,13 @@ const projectImages = [
 
 // Use high-quality cyberpunk/tech Unsplash images to guarantee they load
 const avatarImages = [
-  "https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?q=80&w=600", // neon face
-  "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=600", // retro tech
-  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600", // matrix code
-  "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=600", // code blocks
-  "https://images.unsplash.com/photo-1531297172864-74127c504022?q=80&w=600", // cyber UI
-  "https://images.unsplash.com/photo-1618367588411-dc30daed4742?q=80&w=600", // futuristic pattern
-  "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600", // microchip
-  "https://images.unsplash.com/photo-1515600103135-e115fd4fcb53?q=80&w=600", // tech network
+  "/Profile/Joker.jpg", // The Joker
+  "/Profile/Lion.JPG", // The Lion
+  "https://image.pollinations.ai/prompt/Cinematic_digital_illustration_High_contrast_cel_shading_mechanical_ronin_warrior_with_pointed_feline_hood_single_glowing_green_circular_sensor_white_cloak_luminescent_cyan_floral_patterns_dark_hakama_glowing_cyan_accents_heavy_mechanical_greaves_Oversized_mechanical_heavy_blade_amber_orange_energy_edge_Minimalist_white_to_blue_gradient_background_floating_clockwork_gears_cybernetic_futurism_traditional_Japanese_aesthetics?width=600&height=600&nologo=true", // Cyber Ronin 1
+  "https://image.pollinations.ai/prompt/Close_up_action_shot_Cinematic_digital_illustration_High_contrast_cel_shading_mechanical_ronin_warrior_pointed_feline_hood_glowing_green_sensor_white_cloak_cyan_floral_patterns_swinging_Oversized_mechanical_heavy_blade_glowing_amber_orange_energy_edge_white_to_blue_gradient_background_gears_cybernetic_futurism?width=600&height=600&nologo=true", // Cyber Ronin Action 2
 ];
 
-const RadarGridRing = ({ value, colorClass, strokeWidth = 1 }: { value: number, colorClass: string, strokeWidth?: number }) => {
+const RadarGridRing: React.FC<{ value: number, colorClass: string, strokeWidth?: number }> = ({ value, colorClass, strokeWidth = 1 }) => {
   const maxRadius = 85;
   const r = (value / 10) * maxRadius;
   const cx = 100;
@@ -231,19 +227,615 @@ const QuoteOfTheDay = () => {
   );
 };
 
+const HeptaRadar = ({ data, color = "#ff6a00", strokeColor = "#ff8833" }: { data: { day: string; value: number }[], color?: string, strokeColor?: string }) => {
+  const size = 500;
+  const center = size / 2;
+  const maxRadius = (size / 2) * 0.82; // More space usage
+
+  const getCoordinatesForAngle = (angle: number, radius: number) => {
+    return {
+      x: center + radius * Math.cos(angle - Math.PI / 2),
+      y: center + radius * Math.sin(angle - Math.PI / 2)
+    };
+  };
+
+  const getAngle = (index: number) => (index * 2 * Math.PI) / 7;
+  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1];
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center relative z-10 select-none font-sans">
+      <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} className="max-w-[100%] max-h-[100%] overflow-visible">
+        {/* Background Grid */}
+        {gridLevels.reverse().map((level) => {
+          const points = Array.from({ length: 7 }).map((_, j) => {
+            const { x, y } = getCoordinatesForAngle(getAngle(j), maxRadius * level);
+            return `${x},${y}`;
+          }).join(' ');
+          
+          return (
+            <polygon 
+              key={`grid-${level}`}
+              points={points}
+              fill={level % 0.4 === 0 ? "rgba(255,255,255,0.02)" : "none"}
+              stroke="rgba(255,255,255,0.15)"
+              strokeWidth={1}
+            />
+          );
+        })}
+
+        {/* Axes */}
+        {Array.from({ length: 7 }).map((_, j) => {
+          const { x, y } = getCoordinatesForAngle(getAngle(j), maxRadius);
+          return (
+            <line 
+              key={`axis-${j}`}
+              x1={center} y1={center} x2={x} y2={y}
+              stroke="rgba(255,255,255,0.15)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+          );
+        })}
+
+        {/* Filled Data Sectors */}
+        {data.map((d, i) => {
+          const valuePct = Math.min(Math.max(d.value, 1), 100) / 100; // ensures sliver is visible
+          const r = maxRadius * valuePct;
+          const a1 = getAngle(i);
+          const a2 = getAngle(i + 1);
+          
+          const p1 = getCoordinatesForAngle(a1, r);
+          const p2 = getCoordinatesForAngle(a2, r);
+
+          return (
+             <g key={`sector-${i}`} className="group relative">
+               <path 
+                 d={`M ${center} ${center} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
+                 fill={color}
+                 fillOpacity={0.4}
+                 stroke={strokeColor}
+                 strokeWidth={1.5}
+                 strokeLinejoin="round"
+                 className="transition-all duration-300 group-hover:fill-opacity-70 group-hover:stroke-[2px]"
+               />
+               <path 
+                 d={`M ${center} ${center} L ${getCoordinatesForAngle(a1, maxRadius).x} ${getCoordinatesForAngle(a1, maxRadius).y} L ${getCoordinatesForAngle(a2, maxRadius).x} ${getCoordinatesForAngle(a2, maxRadius).y} Z`}
+                 fill="transparent"
+                 className="cursor-crosshair"
+               >
+                 <title>{`${d.day}: ${Math.round(d.value)}% completed`}</title>
+               </path>
+             </g>
+          );
+        })}
+
+        {/* Labels for percentage block fill */}
+        {data.map((d, i) => {
+           const valuePct = Math.min(Math.max(d.value, 0), 100) / 100;
+           if (valuePct === 0) return null;
+
+           const rDecal = (maxRadius * valuePct) - 15; 
+           const displayR = rDecal < 15 ? 15 : rDecal; 
+           
+           const midAngle = (getAngle(i) + getAngle(i + 1)) / 2;
+           const { x, y } = getCoordinatesForAngle(midAngle, displayR);
+           
+           return (
+             <text 
+               key={`pct-${i}`}
+               x={x} y={y} 
+               fill="#ffffff" 
+               fontSize={10} 
+               fontWeight={700}
+               textAnchor="middle" 
+               alignmentBaseline="middle"
+               className="pointer-events-none opacity-50"
+             >
+               {Math.round(d.value)}%
+             </text>
+           )
+        })}
+
+        {/* Outer label texts for Days */}
+        {data.map((d, i) => {
+          const midAngle = (getAngle(i) + getAngle(i + 1)) / 2;
+          const { x, y } = getCoordinatesForAngle(midAngle, maxRadius + 30);
+          return (
+            <text 
+              key={`label-${i}`}
+              x={x} y={y} 
+              fill={i === 6 ? "#ff6a00" : "rgba(255,255,255,0.6)"} 
+              fontSize={15} 
+              fontWeight={i === 6 ? 800 : 600} 
+              letterSpacing={1}
+              textAnchor="middle" 
+              alignmentBaseline="middle"
+              className="pointer-events-none drop-shadow-sm"
+            >
+              {d.day}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const playCyberSound = (type: 'hover' | 'click' | 'success' | 'transition' | 'boot') => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    const now = ctx.currentTime;
+    
+    if (type === 'hover') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      gainNode.gain.setValueAtTime(0.02, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'click') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+      gainNode.gain.setValueAtTime(0.05, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'transition') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+      gainNode.gain.setValueAtTime(0.05, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'sine';
+      osc2.connect(gainNode);
+      osc2.frequency.setValueAtTime(800, now + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.05, now);
+      gainNode.gain.setValueAtTime(0.05, now + 0.09);
+      gainNode.gain.setValueAtTime(0, now + 0.095);
+      gainNode.gain.setValueAtTime(0.05, now + 0.1);
+      gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+      
+      osc.start(now);
+      osc.stop(now + 0.095);
+      osc2.start(now + 0.1);
+      osc2.stop(now + 0.3);
+    } else if (type === 'boot') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(50, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 1.0);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.05, now + 0.5);
+      gainNode.gain.linearRampToValueAtTime(0, now + 1.0);
+      osc.start(now);
+      osc.stop(now + 1.0);
+    }
+  } catch (e) {
+    console.error("Audio block:", e);
+  }
+};
+
+const PreviewSlider = () => {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % 3);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const slides = [
+    {
+      id: "tasks",
+      title: "Task Management",
+      icon: <CheckSquare size={14} className="text-primary" />,
+      content: (
+        <div className="flex flex-col gap-2">
+          <div className="h-2 w-1/3 bg-white/20 rounded mb-2"></div>
+          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg">
+            <div className="w-3 h-3 rounded-full border border-primary"></div>
+            <div className="h-2 w-full bg-white/20 rounded"></div>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg">
+            <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0"></div>
+            <div className="h-2 w-3/4 bg-white/40 rounded"></div>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg">
+            <div className="w-3 h-3 rounded-full border border-white/50"></div>
+            <div className="h-2 w-5/6 bg-white/20 rounded"></div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "analysis",
+      title: "Deep Analysis",
+      icon: <Activity size={14} className="text-blue-400" />,
+      content: (
+        <div className="flex flex-col gap-2 h-full justify-end pb-2">
+          <div className="flex justify-between items-end h-16 gap-1 px-4">
+             <div className="w-1/6 bg-blue-500/50 h-1/2 rounded-t-sm"></div>
+             <div className="w-1/6 bg-blue-500/80 h-3/4 rounded-t-sm"></div>
+             <div className="w-1/6 bg-blue-400 h-full rounded-t-sm"></div>
+             <div className="w-1/6 bg-blue-500/60 h-2/3 rounded-t-sm"></div>
+             <div className="w-1/6 bg-blue-500/40 h-1/3 rounded-t-sm"></div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "accounts",
+      title: "Operative Account",
+      icon: <User size={14} className="text-green-400" />,
+      content: (
+        <div className="flex flex-col gap-3 items-center pt-2">
+          <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-green-400"></div>
+          <div className="h-2 w-1/2 bg-white/40 rounded"></div>
+          <div className="h-1.5 w-1/3 bg-white/20 rounded"></div>
+          <div className="w-full flex gap-2 mt-2">
+            <div className="h-6 flex-1 bg-white/10 rounded-md"></div>
+            <div className="h-6 flex-1 bg-white/10 rounded-md"></div>
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <div className="w-full h-40 bg-black/50 border border-white/5 rounded-xl flex flex-col relative overflow-hidden mb-6">
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={activeSlide}
+           initial={{ opacity: 0, x: 20 }}
+           animate={{ opacity: 1, x: 0 }}
+           exit={{ opacity: 0, x: -20 }}
+           transition={{ duration: 0.3 }}
+           className="w-full h-full p-4 flex flex-col absolute"
+        >
+           <div className="flex items-center gap-2 mb-4">
+             {slides[activeSlide].icon}
+             <span className="text-xs font-bold text-white">{slides[activeSlide].title}</span>
+           </div>
+           <div className="flex-1 overflow-hidden">
+             {slides[activeSlide].content}
+           </div>
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="absolute bottom-2 left-0 w-full flex justify-center gap-1.5 z-10">
+        {slides.map((_, i) => (
+          <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeSlide ? 'w-4 bg-primary' : 'w-1.5 bg-white/20'}`} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCustomAvatar, avatarImages, handleImageUpload, notifications, setNotifications, onFinish }: any) => {
+  const [step, setStep] = useState<'welcome' | 'alias' | 'avatar' | 'notifications' | 'protocolInfo' | 'preview' | 'entering'>('welcome');
+  const [displayedText, setDisplayedText] = useState('');
+  const fullText = "WELCOME";
+
+  useEffect(() => {
+    if (step === 'welcome') {
+      let i = 0;
+      const interval = setInterval(() => {
+        setDisplayedText(fullText.substring(0, i + 1));
+        i++;
+        if (i >= fullText.length) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setStep('alias');
+          }, 1000);
+        }
+      }, 150);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
+
+  return (
+    <div className="min-h-screen text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden bg-black">
+      <div className="max-w-xl w-full z-10 flex flex-col items-center justify-center min-h-[400px] relative">
+        <AnimatePresence mode="wait">
+          {step === 'welcome' && (
+            <motion.div 
+              key="welcome"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.5 }}
+              className="text-center absolute w-full"
+            >
+              <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight min-h-[60px] flex items-center justify-center">
+                {displayedText}
+                <span className="w-1 h-[40px] sm:h-[50px] bg-primary ml-1 animate-[pulse_1s_infinite]"></span>
+              </h1>
+              <p className="text-muted-foreground text-sm uppercase tracking-widest min-h-[20px] transition-opacity duration-1000" style={{ opacity: displayedText.length === fullText.length ? 1 : 0 }}>
+                Initialization Sequence
+              </p>
+            </motion.div>
+          )}
+
+          {step === 'alias' && (
+            <motion.div 
+              key="alias"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -50 }}
+              transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
+              className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
+            >
+               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                 <User size={18} className="text-primary" />
+                 Enter Alias
+               </h3>
+               <input 
+                 type="text" 
+                 value={operativeName}
+                 onChange={(e) => setOperativeName(e.target.value)}
+                 placeholder="GHOST-01"
+                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+               />
+               <button 
+                 onMouseEnter={() => playCyberSound('hover')}
+                 onClick={() => {
+                   playCyberSound('click');
+                   setTimeout(() => setStep('avatar'), 100);
+                 }}
+                 className="mt-6 flex justify-center items-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-lg font-bold text-white transition-all cursor-pointer w-full transform hover:-translate-y-1"
+               >
+                 INITIALIZE <ChevronRight size={20} />
+               </button>
+            </motion.div>
+          )}
+
+          {step === 'avatar' && (
+            <motion.div 
+              key="avatar"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
+              className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
+            >
+               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                 <Camera size={18} className="text-primary" />
+                 Select Visual Identifier
+               </h3>
+               <div className="flex overflow-x-auto gap-3 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                   {avatarImages.map((img: string, idx: number) => (
+                     <img
+                       key={idx}
+                       src={img}
+                       alt={`Avatar ${idx}`}
+                       className={`w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'}`}
+                       onClick={() => setCustomAvatar(img)}
+                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                     />
+                   ))}
+               </div>
+               
+               <div className="mt-4">
+                 <div className="flex items-center gap-4 w-full my-4">
+                    <div className="h-px bg-white/10 flex-1"></div>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex-shrink-0">OR CUSTOM UPLOAD</span>
+                    <div className="h-px bg-white/10 flex-1"></div>
+                 </div>
+                 <input 
+                   type="file" 
+                   accept="image/*" 
+                   className="hidden" 
+                   id="onboard-upload"
+                   onChange={handleImageUpload} 
+                 />
+                 <label 
+                   htmlFor="onboard-upload"
+                   className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full"
+                 >
+                   <Camera size={16} />
+                   Upload Identity Matrix
+                 </label>
+               </div>
+
+               <button 
+                  onMouseEnter={() => playCyberSound('hover')}
+                  onClick={() => {
+                    playCyberSound('transition');
+                    setTimeout(() => setStep('notifications'), 100);
+                  }}
+                  className="mt-6 flex justify-center items-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-lg font-bold text-white transition-all cursor-pointer w-full transform hover:-translate-y-1"
+               >
+                  NEXT <ChevronRight size={20} />
+               </button>
+            </motion.div>
+          )}
+
+          {step === 'notifications' && (
+            <motion.div 
+              key="notifications"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
+              className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
+            >
+               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                 <Bell size={18} className="text-primary" />
+                 System Notifications
+               </h3>
+               <p className="text-muted-foreground text-sm mb-6">
+                 Allow the system to send you alerts for critical updates, schedule reminders, and performance analyses.
+               </p>
+               
+               <div className="flex flex-col gap-3">
+                 <button 
+                    onMouseEnter={() => playCyberSound('hover')}
+                    onClick={() => {
+                      playCyberSound('success');
+                      setNotifications(true);
+                      setTimeout(() => setStep('protocolInfo'), 100);
+                    }}
+                    className="flex justify-center items-center gap-2 px-6 py-4 bg-primary hover:bg-primary/90 rounded-2xl text-md font-bold text-black transition-all cursor-pointer w-full transform hover:-translate-y-1 shadow-xl shadow-primary/20"
+                 >
+                    ALLOW NOTIFICATIONS <Check size={18} />
+                 </button>
+                 <button 
+                    onMouseEnter={() => playCyberSound('hover')}
+                    onClick={() => {
+                      playCyberSound('transition');
+                      setNotifications(false);
+                      setTimeout(() => setStep('protocolInfo'), 100);
+                    }}
+                    className="flex justify-center items-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-sm font-bold text-white transition-all cursor-pointer w-full"
+                 >
+                    SKIP FOR NOW
+                 </button>
+               </div>
+            </motion.div>
+          )}
+
+          {step === 'protocolInfo' && (
+            <motion.div 
+              key="protocolInfo"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
+              className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
+            >
+               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                 <HeartPulse size={18} className="text-primary" />
+                 Life Protocol & Stats
+               </h3>
+               
+               <p className="text-sm text-white mb-4 leading-relaxed">
+                 <strong className="text-primary">Why is Life Protocol important?</strong><br/>
+                 It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.
+               </p>
+
+               <p className="text-sm text-white mb-6 leading-relaxed">
+                 <strong className="text-blue-400">Why are Life Stats good indicators?</strong><br/>
+                 They directly translate your core daily habits (like sleep and sunlight) into visible performance metrics (HP, Focus, Stamina, Vibe), helping you track if you're truly optimizing your baseline capabilities for a better life.
+               </p>
+
+               <button 
+                  onMouseEnter={() => playCyberSound('hover')}
+                  onClick={() => {
+                    playCyberSound('transition');
+                    setTimeout(() => setStep('preview'), 100);
+                  }}
+                  className="mt-2 flex justify-center items-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-lg font-bold text-white transition-all cursor-pointer w-full transform hover:-translate-y-1"
+               >
+                  NEXT <ChevronRight size={20} />
+               </button>
+            </motion.div>
+          )}
+
+         {step === 'preview' && (
+            <motion.div 
+              key="preview"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
+              className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
+            >
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2 text-white mb-2">
+                    <LayoutGrid size={18} className="text-primary" />
+                    System Overview
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Previewing core modules before final initialization.</p>
+                </div>
+                
+                <PreviewSlider />
+
+               <button 
+                  onMouseEnter={() => playCyberSound('hover')}
+                  onClick={() => {
+                    playCyberSound('boot');
+                    setStep('entering');
+                    setTimeout(() => {
+                      onFinish();
+                    }, 1000);
+                  }}
+                  className="mt-2 flex justify-center items-center gap-2 px-6 py-4 bg-primary hover:bg-primary/90 rounded-2xl text-lg font-bold text-black transition-all cursor-pointer w-full transform hover:-translate-y-1 shadow-xl shadow-primary/20"
+               >
+                  ENTER SYSTEM <ChevronRight size={20} />
+               </button>
+            </motion.div>
+          )}
+
+          {step === 'entering' && (
+            <motion.div 
+              key="entering"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center absolute w-full flex flex-col items-center justify-center gap-4"
+            >
+              <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
+              <h2 className="text-xl font-bold text-white tracking-widest uppercase animate-pulse">Initializing</h2>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("Tasks");
 
+  // Onboarding State
+  const [hasOnboarded, setHasOnboarded] = useState(() => {
+    return localStorage.getItem('app_has_onboarded') === 'true';
+  });
+
   // Custom Avatar State
-  const [customAvatar, setCustomAvatar] = useState<string | null>(null);
+  const [customAvatar, setCustomAvatar] = useState<string | null>(() => {
+    return localStorage.getItem('app_custom_avatar') || null;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Operative State
-  const [operativeName, setOperativeName] = useState("ALPHA-GUEST");
+  const [operativeName, setOperativeName] = useState(() => {
+    return localStorage.getItem('app_operative_name') || "";
+  });
   const [notifications, setNotifications] = useState(true);
   const [appThemeColor, setAppThemeColor] = useState("#ff6a00");
   const [showQuoteBox, setShowQuoteBox] = useState(true);
   const dataImportRef = useRef<HTMLInputElement>(null);
+
+  // Sync state to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('app_has_onboarded', hasOnboarded.toString());
+  }, [hasOnboarded]);
+
+  useEffect(() => {
+    if (customAvatar) {
+      localStorage.setItem('app_custom_avatar', customAvatar);
+    } else {
+      localStorage.removeItem('app_custom_avatar');
+    }
+  }, [customAvatar]);
+
+  useEffect(() => {
+    if (operativeName) {
+      localStorage.setItem('app_operative_name', operativeName);
+    }
+  }, [operativeName]);
 
   // Apply Theme Color
   useEffect(() => {
@@ -271,7 +863,15 @@ export default function App() {
     protocolCode?: string;
   }
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [taskLogDate, setTaskLogDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [showTaskLog, setShowTaskLog] = useState(true);
+
+  useEffect(() => {
+    setIsMobileDevice(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }, []);
+
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isViewEventsModalOpen, setIsViewEventsModalOpen] = useState(false);
   const [selectedEventDetails, setSelectedEventDetails] = useState<CalendarEvent | null>(null);
@@ -314,6 +914,7 @@ export default function App() {
     { id: 2, title: "Data Migration", difficulty: "medium", done: false, time: "10:30 AM" },
     { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
   ]);
+  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number }>>({});
   const [newDailyTaskTitle, setNewDailyTaskTitle] = useState("");
   const [newDailyTaskDiff, setNewDailyTaskDiff] = useState<TaskDifficulty>("medium");
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -376,6 +977,25 @@ export default function App() {
     }, 0);
   };
 
+  useEffect(() => {
+    const total = calculateTotalDailyPoints();
+    const current = calculateDailyPoints();
+    let intensity = 0;
+    if (total > 0 && current > 0) {
+      intensity = Math.ceil((current / total) * 4); // 1 to 4
+    }
+    const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+    const today = new Date();
+    const todayStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    setTaskHistory(prev => {
+      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage) return prev;
+      return {
+        ...prev,
+        [todayStr]: { intensity, percentage }
+      };
+    });
+  }, [dailyTasks]);
+
   // Weekly Must State & Lockdown Logic
   const [isWeekActive, setIsWeekActive] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -386,7 +1006,7 @@ export default function App() {
   const [weekStartDate, setWeekStartDate] = useState<string | null>(null);
 
   // Analysis State
-  const [analysisView, setAnalysisView] = useState<'graph' | 'block'>('graph');
+  const [analysisView, setAnalysisView] = useState<'graph' | 'block' | 'radar'>('radar');
 
   // Life Protocol State
   const [lifeProtocol, setLifeProtocol] = useState({
@@ -438,6 +1058,7 @@ export default function App() {
       appThemeColor,
       customAvatar,
       dailyTasks,
+      taskHistory,
       events,
       projects
     };
@@ -472,6 +1093,7 @@ export default function App() {
           if (data.appThemeColor !== undefined) setAppThemeColor(data.appThemeColor);
           if (data.customAvatar !== undefined) setCustomAvatar(data.customAvatar);
           if (data.dailyTasks !== undefined) setDailyTasks(data.dailyTasks);
+          if (data.taskHistory !== undefined) setTaskHistory(data.taskHistory);
           if (data.events !== undefined) setEvents(data.events);
           if (data.projects !== undefined) setProjects(data.projects);
         } catch (err) {
@@ -484,7 +1106,7 @@ export default function App() {
     if (dataImportRef.current) dataImportRef.current.value = "";
   };
 
-  const getStatPieces = (base: number, done: boolean) => done ? base + 1 : base;
+  const getStatPieces = (base: number, done: boolean) => done ? 10 : 1;
 
   const getBarColorClass = (filled: number) => {
     if (filled <= 3) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
@@ -553,28 +1175,77 @@ export default function App() {
     return () => clearInterval(interval);
   }, [lastResetDate, weekStartDate]);
 
-  const [historicalData] = useState([
-    { day: 'Day 1', daily: 0, weekly: 0 },
-    { day: 'Day 2', daily: 0, weekly: 0 },
-    { day: 'Day 3', daily: 0, weekly: 0 },
-    { day: 'Day 4', daily: 0, weekly: 0 },
-    { day: 'Day 5', daily: 0, weekly: 0 },
-    { day: 'Day 6', daily: 0, weekly: 0 },
-  ]);
-
   const todayDailyPct = calculateTotalDailyPoints() === 0 ? 0 : Math.round((calculateDailyPoints() / calculateTotalDailyPoints()) * 100);
   const todayWeeklyPct = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
 
-  const analysisData = [
-    ...historicalData,
-    { day: 'Today', daily: todayDailyPct, weekly: todayWeeklyPct }
-  ];
+  // Generate 7-day historical data
+  const generate7DayData = () => {
+    const data = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); 
+      
+      let dailyPct = 0;
+      let weeklyPct = 0;
+      
+      if (i === 0) {
+        dailyPct = todayDailyPct;
+        weeklyPct = todayWeeklyPct;
+      } else {
+        const historyObj = taskHistory[dateStr];
+        if (historyObj) {
+          dailyPct = historyObj.percentage !== undefined ? historyObj.percentage : (historyObj.intensity * 25);
+        }
+      }
+
+      data.push({
+        day: i === 0 ? 'Today' : dayName,
+        subject: dayName,
+        A: dailyPct || 1, // for radar
+        daily: dailyPct, // for bar chart
+        weekly: weeklyPct
+      });
+    }
+    return data;
+  };
+
+  const analysisData = generate7DayData();
+  const dailyVectorData = analysisData.map(d => ({ day: d.day, value: d.daily }));
+  const weeklyVectorData = analysisData.map(d => ({ day: d.day, value: d.weekly }));
 
   const avgDailyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.daily, 0) / analysisData.length) || 0;
   const avgWeeklyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.weekly, 0) / analysisData.length) || 0;
 
+  if (!hasOnboarded) {
+    return (
+      <OnboardingScreen 
+        operativeName={operativeName}
+        setOperativeName={setOperativeName}
+        customAvatar={customAvatar}
+        setCustomAvatar={setCustomAvatar}
+        avatarImages={avatarImages}
+        handleImageUpload={handleImageUpload}
+        notifications={notifications}
+        setNotifications={setNotifications}
+        onFinish={() => {
+          if (!operativeName.trim()) setOperativeName("ALPHA-GUEST");
+          if (!customAvatar && avatarImages.length > 0) setCustomAvatar(avatarImages[0]);
+          setHasOnboarded(true);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen text-foreground flex w-full relative overflow-hidden bg-black">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1, ease: "easeOut" }}
+      className="min-h-screen text-foreground flex w-full relative overflow-hidden bg-black"
+    >
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-screen w-full relative z-10 pt-6">
@@ -635,10 +1306,11 @@ export default function App() {
 
                 {/* Daily Energy Section - Below the name */}
                 <div className="flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-4 text-white flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-1 text-white flex-shrink-0">
                     <HeartPulse size={18} className="text-primary" />
                     <span className="font-bold text-lg">Life Stats</span>
                   </div>
+                  <p className="text-muted-foreground text-xs mb-4">Connect to Life protocol</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* HP Stat */}
@@ -964,6 +1636,16 @@ export default function App() {
                     <LifeRadar lifeProtocol={lifeProtocol} />
                   </div>
                 </div>
+
+                <div className="md:col-span-3 mt-4 p-5 rounded-2xl bg-[#0a0a0a]/50 border border-white/5 mx-auto text-left w-full max-w-5xl text-sm flex gap-4 items-start shadow-sm">
+                  <HeartPulse className="text-primary flex-shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <h4 className="text-white font-bold mb-1">Why is Life Protocol important?</h4>
+                    <p className="text-muted-foreground leading-relaxed">
+                      It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.
+                    </p>
+                  </div>
+                </div>
               </>
             )}
 
@@ -972,7 +1654,76 @@ export default function App() {
               <div className="md:col-span-3 grid grid-cols-1 lg:grid-cols-4 gap-6">
                 
                 {/* Left Side: Calendar Control */}
-                <div className="lg:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl">
+                <div className="lg:col-span-3 flex flex-col gap-6">
+                
+                {/* Task Logs (Heatmap / Continuous active days) */}
+                <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col gap-4">
+                   <div className="flex justify-between items-center cursor-pointer" onClick={() => setShowTaskLog(!showTaskLog)}>
+                      <div>
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                          <Activity className="text-primary" size={20} />
+                          Task Logs
+                        </h2>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Continuous Execution Map</p>
+                      </div>
+                      <button className="text-white/50 hover:text-white">
+                        {showTaskLog ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </button>
+                   </div>
+                   
+                   {showTaskLog && (
+                     <div className="w-full mt-4 flex flex-col gap-4">
+                       <div className="flex items-center justify-between">
+                         <span className="text-sm font-bold uppercase tracking-wider text-white bg-white/5 px-3 py-1 rounded">
+                           {taskLogDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                         </span>
+                         <div className="flex gap-2">
+                           <button onClick={(e) => { e.stopPropagation(); setTaskLogDate(new Date(taskLogDate.getFullYear(), taskLogDate.getMonth() - 1, 1)); }} className="p-1 hover:bg-white/10 rounded-md transition-colors text-white/60 hover:text-white">
+                             <ChevronLeft size={16} />
+                           </button>
+                           <button onClick={(e) => { e.stopPropagation(); setTaskLogDate(new Date(taskLogDate.getFullYear(), taskLogDate.getMonth() + 1, 1)); }} className="p-1 hover:bg-white/10 rounded-md transition-colors text-white/60 hover:text-white">
+                             <ChevronRight size={16} />
+                           </button>
+                         </div>
+                       </div>
+
+                       <div className="grid grid-cols-10 gap-1 sm:gap-2 w-fit">
+                         {Array.from({ length: new Date(taskLogDate.getFullYear(), taskLogDate.getMonth() + 1, 0).getDate() }).map((_, dayIdx) => {
+                           const y = taskLogDate.getFullYear();
+                           const m = String(taskLogDate.getMonth() + 1).padStart(2, '0');
+                           const d = String(dayIdx + 1).padStart(2, '0');
+                           const dateStr = `${y}-${m}-${d}`;
+                           const history = taskHistory[dateStr];
+                           const intensity = history ? history.intensity : 0;
+                           const opacities = ['bg-white/5', 'bg-primary/20', 'bg-primary/40', 'bg-primary/60', 'bg-primary'];
+                           return (
+                             <div 
+                               key={`day-${taskLogDate.getMonth()}-${dayIdx}`} 
+                               className={`w-6 h-6 sm:w-8 sm:h-8 rounded-sm ${opacities[intensity] || opacities[0]} border border-white/5 flex items-center justify-center text-[10px] sm:text-xs font-mono text-white/40`}
+                               title={`Activity level: ${intensity} on ${dayIdx + 1}`}
+                             >
+                               {dayIdx + 1}
+                             </div>
+                           );
+                         })}
+                       </div>
+                       <div className="flex items-center justify-between mt-2 text-[10px] text-white/40 uppercase tracking-widest font-mono">
+                         <span>{new Date(taskLogDate.getFullYear(), taskLogDate.getMonth() + 1, 0).getDate()} Days</span>
+                         <div className="flex items-center gap-1">
+                           <span>Less</span>
+                           <div className="w-3 h-3 rounded-sm bg-white/5 border border-white/5" />
+                           <div className="w-3 h-3 rounded-sm bg-primary/20 border border-white/5" />
+                           <div className="w-3 h-3 rounded-sm bg-primary/40 border border-white/5" />
+                           <div className="w-3 h-3 rounded-sm bg-primary/60 border border-white/5" />
+                           <div className="w-3 h-3 rounded-sm bg-primary border border-white/5" />
+                           <span>More</span>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                </div>
+
+                <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
                       <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -994,8 +1745,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
-                    <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden min-w-[700px] md:min-w-0">
+                  <div className="w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
+                    <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden min-w-[500px] md:min-w-0">
                       {/* Days Header */}
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                       <div key={day} className="bg-white/[0.02] p-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 border-b border-white/5">
@@ -1049,6 +1800,7 @@ export default function App() {
                     })}
                     </div>
                   </div>
+                </div>
                 </div>
 
                 {/* Right Side: Upcoming Events */}
@@ -1121,16 +1873,50 @@ export default function App() {
             )}
 
             {activeTab === "Analysis" && (
-              <div className="md:col-span-3 flex flex-col gap-6">
+              <div className="md:col-span-3 flex flex-col gap-6" style={(isMobileDevice && analysisView === 'graph') ? { zoom: 0.65 } : {}}>
                 
                 {/* View Toggles */}
                 <div className="flex justify-start gap-2 bg-[#1A1A1A] border border-white/10 rounded-xl p-1 self-start">
-                  <button onClick={() => setAnalysisView('graph')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Graphs</button>
+                  <button onClick={() => setAnalysisView('graph')} className={`hidden sm:inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Graphs</button>
+                  <button onClick={() => setAnalysisView('radar')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'radar' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Radar</button>
                   <button onClick={() => setAnalysisView('block')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'block' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Block Craft</button>
                 </div>
 
-                {analysisView === 'graph' ? (
-                  <>
+                {analysisView === 'radar' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                    {/* Daily Radar Performance Graph */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col">
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
+                         <h2 className="text-xl font-bold flex items-center gap-2">
+                           <Activity size={20} className="text-primary" />
+                           Daily Performance Vector
+                         </h2>
+                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">Daily-Hepta</span>
+                       </div>
+                       <div className="flex-1 w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
+                         <HeptaRadar data={dailyVectorData} />
+                       </div>
+                    </div>
+
+                    {/* Weekly Must Radar Performance Graph */}
+                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col">
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
+                         <h2 className="text-xl font-bold flex items-center gap-2">
+                           <Target size={20} className="text-blue-400" />
+                           Weekly Must Vector
+                         </h2>
+                         <span className="text-[10px] bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30 font-mono tracking-widest uppercase">Weekly-Hepta</span>
+                       </div>
+                       <div className="flex-1 w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
+                         <HeptaRadar data={weeklyVectorData} color="#60a5fa" strokeColor="#93c5fd" />
+                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {analysisView === 'graph' && (
+                  <div className="hidden sm:grid grid-cols-1 lg:grid-cols-2 gap-6">
+
                     {/* Daily Task Performance Graph */}
                     <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
@@ -1140,8 +1926,8 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
                       </div>
-                      <div className="h-[300px] w-full min-w-0 relative z-10 overflow-x-auto overflow-y-hidden pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
-                        <div className="min-w-[600px] md:min-w-0 h-full">
+                      <div className="h-[250px] sm:h-[300px] w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
+                        <div className="w-full min-w-0 h-full">
                           <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
@@ -1173,8 +1959,8 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
                       </div>
-                      <div className="h-[300px] w-full min-w-0 relative z-10 overflow-x-auto overflow-y-hidden pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
-                        <div className="min-w-[600px] md:min-w-0 h-full">
+                      <div className="h-[250px] sm:h-[300px] w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
+                        <div className="w-full min-w-0 h-full">
                           <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
@@ -1196,8 +1982,10 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </>
-                ) : (
+                  </div>
+                )}
+                
+                {analysisView === 'block' && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Daily Block Craft */}
                     <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
@@ -1208,10 +1996,10 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
                       </div>
-                      <div className="flex md:flex-wrap gap-4 relative z-10 items-end justify-start md:justify-center h-[200px] overflow-x-auto pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
+                      <div className="flex w-full min-w-0 md:flex-wrap gap-1 sm:gap-4 relative z-10 items-end justify-between sm:justify-center h-[200px] pb-4 md:pb-0">
                         {analysisData.map((data, idx) => (
-                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2 flex-shrink-0">
-                             <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
+                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2 flex-1 sm:flex-none">
+                             <div className="w-full max-w-[32px] sm:max-w-none sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
                                <motion.div 
                                  initial={{ height: 0 }}
                                  animate={{ height: `${data.daily}%` }}
@@ -1235,10 +2023,10 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
                       </div>
-                      <div className="flex md:flex-wrap gap-4 relative z-10 items-end justify-start md:justify-center h-[200px] overflow-x-auto pb-4 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 max-w-[calc(100vw-3rem)] md:max-w-none">
+                      <div className="flex w-full min-w-0 md:flex-wrap gap-1 sm:gap-4 relative z-10 items-end justify-between sm:justify-center h-[200px] pb-4 md:pb-0">
                         {analysisData.map((data, idx) => (
-                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2 flex-shrink-0">
-                             <div className="w-8 sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
+                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2 flex-1 sm:flex-none">
+                             <div className="w-full max-w-[32px] sm:max-w-none sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
                                <motion.div 
                                  initial={{ height: 0 }}
                                  animate={{ height: `${data.weekly}%` }}
@@ -1432,17 +2220,31 @@ export default function App() {
                             </div>
 
                              {/* Theme Color Input */}
-                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">System Color Protocol</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Define core aesthetic spectrum</p>
+                            <div className="mt-4 flex flex-col gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div className="flex items-center justify-between">
+                                  <div>
+                                     <p className="text-sm font-medium text-white">System Color Protocol</p>
+                                     <p className="text-xs text-muted-foreground mt-0.5">Define core aesthetic spectrum</p>
+                                  </div>
+                                  <input 
+                                    type="color" 
+                                    value={appThemeColor}
+                                    onChange={(e) => setAppThemeColor(e.target.value)}
+                                    className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
+                                  />
                                </div>
-                               <input 
-                                 type="color" 
-                                 value={appThemeColor}
-                                 onChange={(e) => setAppThemeColor(e.target.value)}
-                                 className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
-                               />
+                               
+                               <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                                 {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF'].map((color) => (
+                                   <button
+                                     key={color}
+                                     onClick={() => setAppThemeColor(color)}
+                                     className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${appThemeColor === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent'}`}
+                                     style={{ backgroundColor: color }}
+                                     title={color}
+                                   />
+                                 ))}
+                               </div>
                             </div>
                           </div>
 
@@ -1827,6 +2629,6 @@ export default function App() {
            </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
