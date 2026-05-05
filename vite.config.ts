@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg'],
         manifest: {
-          name: 'Life Protocol App',
-          short_name: 'LifeProtocol',
+          name: 'Life planner- For ADHD',
+          short_name: 'LifePlanner',
           description: 'Life Protocol tracking application',
           theme_color: '#000000',
           background_color: '#000000',
