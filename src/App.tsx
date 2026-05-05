@@ -794,11 +794,16 @@ export default function App() {
     return localStorage.getItem('app_operative_name') || "";
   });
   const [notifications, setNotifications] = useState(true);
-  const [appThemeColor, setAppThemeColor] = useState("#ff6a00");
+  const [appThemeColor, setAppThemeColor] = useState(() => {
+    return localStorage.getItem('app_theme_color') || "#ff6a00";
+  });
   const [showQuoteBox, setShowQuoteBox] = useState(true);
   const dataImportRef = useRef<HTMLInputElement>(null);
 
   // Sync state to LocalStorage
+  useEffect(() => {
+    localStorage.setItem('app_theme_color', appThemeColor);
+  }, [appThemeColor]);
   useEffect(() => {
     localStorage.setItem('app_has_onboarded', hasOnboarded.toString());
   }, [hasOnboarded]);
@@ -830,8 +835,37 @@ export default function App() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setCustomAvatar(imageUrl);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setCustomAvatar(dataUrl);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -984,15 +1018,38 @@ export default function App() {
   }, [dailyTasks]);
 
   // Weekly Must State & Lockdown Logic
-  const [isWeekActive, setIsWeekActive] = useState(false);
+  const [isWeekActive, setIsWeekActive] = useState(() => {
+    return localStorage.getItem('app_isWeekActive') === 'true';
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
+  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean}[]>(() => {
+    const saved = localStorage.getItem('app_weeklyMusts');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
   const [tempTaskTitle, setTempTaskTitle] = useState("");
   const [lastResetDate, setLastResetDate] = useState(() => {
     return localStorage.getItem('app_lastResetDate') || new Date().toDateString();
   });
-  const [weekStartDate, setWeekStartDate] = useState<string | null>(null);
+  const [weekStartDate, setWeekStartDate] = useState<string | null>(() => {
+    return localStorage.getItem('app_weekStartDate') || null;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app_isWeekActive', isWeekActive.toString());
+  }, [isWeekActive]);
+
+  useEffect(() => {
+    localStorage.setItem('app_weeklyMusts', JSON.stringify(weeklyMusts));
+  }, [weeklyMusts]);
+
+  useEffect(() => {
+    if (weekStartDate) {
+      localStorage.setItem('app_weekStartDate', weekStartDate);
+    } else {
+      localStorage.removeItem('app_weekStartDate');
+    }
+  }, [weekStartDate]);
 
   // Analysis State
   const [analysisView, setAnalysisView] = useState<'graph' | 'block' | 'radar'>('radar');
@@ -1085,7 +1142,10 @@ export default function App() {
       projects,
       lifeProtocol,
       lifeProtocolLevels,
-      lastResetDate
+      lastResetDate,
+      isWeekActive,
+      weeklyMusts,
+      weekStartDate
     };
     const jsonStr = JSON.stringify(data, null, 2);
     
@@ -1124,6 +1184,9 @@ export default function App() {
           if (data.lifeProtocol !== undefined) setLifeProtocol(data.lifeProtocol);
           if (data.lifeProtocolLevels !== undefined) setLifeProtocolLevels(data.lifeProtocolLevels);
           if (data.lastResetDate !== undefined) setLastResetDate(data.lastResetDate);
+          if (data.isWeekActive !== undefined) setIsWeekActive(data.isWeekActive);
+          if (data.weeklyMusts !== undefined) setWeeklyMusts(data.weeklyMusts);
+          if (data.weekStartDate !== undefined) setWeekStartDate(data.weekStartDate);
         } catch (err) {
           console.error("Failed to parse archive data", err);
         }
