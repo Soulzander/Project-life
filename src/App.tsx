@@ -50,19 +50,16 @@ const RadarGridRing: React.FC<{ value: number, colorClass: string, strokeWidth?:
   );
 };
 
-const LifeRadar = ({ lifeProtocol }: { lifeProtocol: { sleep: boolean, meditation: boolean, sunlight: boolean, walk: boolean } }) => {
+const LifeRadar = ({ lifeProtocolLevels }: { lifeProtocolLevels: { sleep: number, meditation: number, sunlight: number, walk: number } }) => {
   const cx = 100;
   const cy = 100;
   const maxRadius = 85;
   
-  // Base 5, completing the task adds 1 piece (to 6 out of 10)
-  const getValue = (active: boolean) => active ? 6 : 5;
-  
   const dataPoints = [
-    { value: getValue(lifeProtocol.sleep), angle: -Math.PI / 2, label: 'HP' },
-    { value: getValue(lifeProtocol.meditation), angle: 0, label: 'Focus' },
-    { value: getValue(lifeProtocol.sunlight), angle: Math.PI / 2, label: 'Mental' },
-    { value: getValue(lifeProtocol.walk), angle: Math.PI, label: 'Physical' },
+    { value: lifeProtocolLevels.sleep, angle: -Math.PI / 2, label: 'HP' },
+    { value: lifeProtocolLevels.meditation, angle: 0, label: 'Focus' },
+    { value: lifeProtocolLevels.sunlight, angle: Math.PI / 2, label: 'Mental' },
+    { value: lifeProtocolLevels.walk, angle: Math.PI, label: 'Physical' },
   ];
   
   const polygonPoints = dataPoints.map(p => {
@@ -99,32 +96,15 @@ const LifeRadar = ({ lifeProtocol }: { lifeProtocol: { sleep: boolean, meditatio
         ))}
 
         {/* Dynamic Data Polygon */}
-        <polygon 
-          points={polygonPoints} 
-          fill="rgba(255, 106, 0, 0.4)" 
-          stroke="#ff6a00" 
+        <motion.polygon 
+          animate={{ points: polygonPoints, stroke: "var(--app-primary)", fill: "var(--app-primary)" }}
+          transition={{ type: "spring", stiffness: 100, damping: 15 }}
           strokeWidth={2} 
           filter="url(#neon-glow)"
-          style={{ transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          fillOpacity={0.4}
         />
 
         {/* Data Vertices */}
-        {dataPoints.map((p, i) => {
-          const r = (p.value / 10) * maxRadius;
-          return (
-            <circle 
-              key={i} 
-              cx={cx + r * Math.cos(p.angle)} 
-              cy={cy + r * Math.sin(p.angle)} 
-              r={3} 
-              fill="#fff"
-              stroke="#ff6a00"
-              strokeWidth={1.5}
-              style={{ transition: "all 1s cubic-bezier(0.16, 1, 0.3, 1)" }}
-            />
-          );
-        })}
-
         {/* Labels */}
         {dataPoints.map((p, i) => {
           const labelDist = maxRadius + 15;
@@ -721,10 +701,10 @@ const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCu
                  Life Protocol & Stats
                </h3>
                
-               <p className="text-sm text-white mb-4 leading-relaxed">
-                 <strong className="text-primary">Why is Life Protocol important?</strong><br/>
-                 It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.
-               </p>
+               <div className="p-4 rounded-xl mb-4 bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)] text-sm leading-relaxed">
+                 <strong className="text-purple-300">Why is Life Protocol important?</strong><br/>
+                 <span className="text-purple-100/80">It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.</span>
+               </div>
 
                <p className="text-sm text-white mb-6 leading-relaxed">
                  <strong className="text-blue-400">Why are Life Stats good indicators?</strong><br/>
@@ -909,12 +889,19 @@ export default function App() {
     done: boolean;
     time: string;
   }
-  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([
-    { id: 1, title: "Initial System Check", difficulty: "easy", done: false, time: "08:00 AM" },
-    { id: 2, title: "Data Migration", difficulty: "medium", done: false, time: "10:30 AM" },
-    { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
-  ]);
-  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number }>>({});
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>(() => {
+    const saved = localStorage.getItem('app_dailyTasks');
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 1, title: "Initial System Check", difficulty: "easy", done: false, time: "08:00 AM" },
+      { id: 2, title: "Data Migration", difficulty: "medium", done: false, time: "10:30 AM" },
+      { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
+    ];
+  });
+  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number }>>(() => {
+    const saved = localStorage.getItem('app_taskHistory');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [newDailyTaskTitle, setNewDailyTaskTitle] = useState("");
   const [newDailyTaskDiff, setNewDailyTaskDiff] = useState<TaskDifficulty>("medium");
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -1002,19 +989,54 @@ export default function App() {
   const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
   const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
   const [tempTaskTitle, setTempTaskTitle] = useState("");
-  const [lastResetDate, setLastResetDate] = useState(new Date().toDateString());
+  const [lastResetDate, setLastResetDate] = useState(() => {
+    return localStorage.getItem('app_lastResetDate') || new Date().toDateString();
+  });
   const [weekStartDate, setWeekStartDate] = useState<string | null>(null);
 
   // Analysis State
   const [analysisView, setAnalysisView] = useState<'graph' | 'block' | 'radar'>('radar');
 
   // Life Protocol State
-  const [lifeProtocol, setLifeProtocol] = useState({
-    sleep: false,
-    meditation: false,
-    sunlight: false,
-    walk: false,
+  const [lifeProtocol, setLifeProtocol] = useState(() => {
+    const saved = localStorage.getItem('app_lifeProtocol');
+    return saved ? JSON.parse(saved) : {
+      sleep: false,
+      meditation: false,
+      sunlight: false,
+      walk: false,
+    };
   });
+  const [lifeProtocolLevels, setLifeProtocolLevels] = useState(() => {
+    const saved = localStorage.getItem('app_lifeProtocolLevels');
+    return saved ? JSON.parse(saved) : {
+      sleep: 1,
+      meditation: 1,
+      sunlight: 1,
+      walk: 1,
+    };
+  });
+
+  // Persist local state
+  useEffect(() => {
+    localStorage.setItem('app_dailyTasks', JSON.stringify(dailyTasks));
+  }, [dailyTasks]);
+
+  useEffect(() => {
+    localStorage.setItem('app_taskHistory', JSON.stringify(taskHistory));
+  }, [taskHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('app_lastResetDate', lastResetDate);
+  }, [lastResetDate]);
+
+  useEffect(() => {
+    localStorage.setItem('app_lifeProtocol', JSON.stringify(lifeProtocol));
+  }, [lifeProtocol]);
+
+  useEffect(() => {
+    localStorage.setItem('app_lifeProtocolLevels', JSON.stringify(lifeProtocolLevels));
+  }, [lifeProtocolLevels]);
 
   // Mega Projects State
   interface MegaProject {
@@ -1060,7 +1082,10 @@ export default function App() {
       dailyTasks,
       taskHistory,
       events,
-      projects
+      projects,
+      lifeProtocol,
+      lifeProtocolLevels,
+      lastResetDate
     };
     const jsonStr = JSON.stringify(data, null, 2);
     
@@ -1096,6 +1121,9 @@ export default function App() {
           if (data.taskHistory !== undefined) setTaskHistory(data.taskHistory);
           if (data.events !== undefined) setEvents(data.events);
           if (data.projects !== undefined) setProjects(data.projects);
+          if (data.lifeProtocol !== undefined) setLifeProtocol(data.lifeProtocol);
+          if (data.lifeProtocolLevels !== undefined) setLifeProtocolLevels(data.lifeProtocolLevels);
+          if (data.lastResetDate !== undefined) setLastResetDate(data.lastResetDate);
         } catch (err) {
           console.error("Failed to parse archive data", err);
         }
@@ -1105,8 +1133,6 @@ export default function App() {
     });
     if (dataImportRef.current) dataImportRef.current.value = "";
   };
-
-  const getStatPieces = (base: number, done: boolean) => done ? 10 : 1;
 
   const getBarColorClass = (filled: number) => {
     if (filled <= 3) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
@@ -1132,6 +1158,20 @@ export default function App() {
     setTempTaskTitle("");
   };
 
+  const handleToggleLifeProtocol = (key: string) => {
+    const k = key as keyof typeof lifeProtocol;
+    const newValue = !lifeProtocol[k];
+    
+    setLifeProtocolLevels(levels => ({
+      ...levels,
+      [key]: newValue 
+        ? Math.min(10, levels[k] + 1) 
+        : Math.max(1, levels[k] - 1)
+    }));
+    
+    setLifeProtocol(prev => ({ ...prev, [k]: newValue }));
+  };
+
   const commitWeek = () => {
     if (tempTasks.length === 0) return;
     setWeeklyMusts(tempTasks);
@@ -1143,12 +1183,30 @@ export default function App() {
   // Auto-reset logic for midnight and weekly rotation
   useEffect(() => {
     const interval = setInterval(() => {
-      const todayStr = new Date().toDateString();
+      const today = new Date();
+      const todayStr = today.toDateString();
+      const lastReset = new Date(lastResetDate);
       
       // 1. Midnight Reset (Resets task 'done' status)
       if (todayStr !== lastResetDate) {
         setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
         setDailyTasks(prev => prev.map(m => ({ ...m, done: false })));
+        
+        const daysPassed = Math.floor((today.getTime() - lastReset.getTime()) / (1000 * 3600 * 24));
+        if (daysPassed > 0) {
+            setLifeProtocolLevels(prevLevels => {
+               const next = { ...prevLevels };
+               for (const key in next) {
+                  const k = key as keyof typeof next;
+                  let drops = 0;
+                  if (!lifeProtocol[k]) drops += 1; // missed on the last day recorded
+                  drops += (daysPassed - 1); // totally missed days
+                  next[k] = Math.max(1, next[k] - drops);
+               }
+               return next;
+            });
+        }
+        
         setLifeProtocol({
           sleep: false,
           meditation: false,
@@ -1162,8 +1220,8 @@ export default function App() {
       if (weekStartDate) {
         const start = new Date(weekStartDate).getTime();
         const now = new Date().getTime();
-        const daysPassed = (now - start) / (1000 * 3600 * 24);
-        if (daysPassed >= 7) {
+        const daysPassedCheck = (now - start) / (1000 * 3600 * 24);
+        if (daysPassedCheck >= 7) {
           setIsWeekActive(false);
           setWeeklyMusts([]);
           setTempTasks([]);
@@ -1173,7 +1231,7 @@ export default function App() {
     }, 10000); // Check frequently to keep UI responsive
 
     return () => clearInterval(interval);
-  }, [lastResetDate, weekStartDate]);
+  }, [lastResetDate, weekStartDate, lifeProtocol]);
 
   const todayDailyPct = calculateTotalDailyPoints() === 0 ? 0 : Math.round((calculateDailyPoints() / calculateTotalDailyPoints()) * 100);
   const todayWeeklyPct = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
@@ -1321,11 +1379,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Heart size={16} className="text-primary fill-primary/20" />
                          <span className="tracking-widest uppercase text-xs">HP</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.sleep)}0%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.sleep}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.sleep) ? getBarColorClass(getStatPieces(5, lifeProtocol.sleep)) : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.sleep ? getBarColorClass(lifeProtocolLevels.sleep) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -1338,11 +1396,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Target size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Focus</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.meditation)}0%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.meditation}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.meditation) ? getBarColorClass(getStatPieces(5, lifeProtocol.meditation)) : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.meditation ? getBarColorClass(lifeProtocolLevels.meditation) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -1355,11 +1413,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Dumbbell size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Physical</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.walk)}0%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.walk}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.walk) ? getBarColorClass(getStatPieces(5, lifeProtocol.walk)) : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.walk ? getBarColorClass(lifeProtocolLevels.walk) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -1372,11 +1430,11 @@ export default function App() {
                        <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
                          <Brain size={16} className="text-primary" />
                          <span className="tracking-widest uppercase text-xs">Mental</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{getStatPieces(5, lifeProtocol.sunlight)}0%</span>
+                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.sunlight}0%</span>
                        </div>
                        <div className="flex h-1.5 gap-1 w-full relative z-10">
                          {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < getStatPieces(5, lifeProtocol.sunlight) ? getBarColorClass(getStatPieces(5, lifeProtocol.sunlight)) : 'bg-white/10'}`} />
+                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.sunlight ? getBarColorClass(lifeProtocolLevels.sunlight) : 'bg-white/10'}`} />
                          ))}
                        </div>
                     </div>
@@ -1615,7 +1673,7 @@ export default function App() {
                       ].map((task) => (
                         <div 
                           key={task.key}
-                          onClick={() => setLifeProtocol(prev => ({ ...prev, [task.key]: !prev[task.key as keyof typeof lifeProtocol] }))}
+                          onClick={() => handleToggleLifeProtocol(task.key)}
                           className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary/10 border-primary/30' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
                         >
                            <div className={`w-5 h-5 rounded border-[1.5px] flex items-center justify-center transition-colors ${lifeProtocol[task.key as keyof typeof lifeProtocol] ? 'bg-primary border-primary' : 'border-white/20 leading-none'}`}>
@@ -1632,16 +1690,15 @@ export default function App() {
 
                   {/* Right: Radar Chart */}
                   <div className="w-full md:w-72 lg:w-80 flex flex-col items-center justify-center relative border-t md:border-t-0 md:border-l border-white/5 pt-6 md:pt-0 pl-0 md:pl-6">
-                    <h4 className="absolute top-0 md:top-auto md:-top-4 text-[10px] text-muted-foreground uppercase tracking-widest font-mono text-center w-full">Stats Radar</h4>
-                    <LifeRadar lifeProtocol={lifeProtocol} />
+                    <LifeRadar lifeProtocolLevels={lifeProtocolLevels} />
                   </div>
                 </div>
 
-                <div className="md:col-span-3 mt-4 p-5 rounded-2xl bg-[#0a0a0a]/50 border border-white/5 mx-auto text-left w-full max-w-5xl text-sm flex gap-4 items-start shadow-sm">
-                  <HeartPulse className="text-primary flex-shrink-0 mt-0.5" size={20} />
+                <div className="md:col-span-3 mt-4 p-5 rounded-2xl bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 mx-auto text-left w-full max-w-5xl text-sm flex gap-4 items-start shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                  <HeartPulse className="text-purple-400 flex-shrink-0 mt-0.5" size={20} />
                   <div>
-                    <h4 className="text-white font-bold mb-1">Why is Life Protocol important?</h4>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <h4 className="text-purple-300 font-bold mb-1">Why is Life Protocol important?</h4>
+                    <p className="text-purple-100/80 leading-relaxed">
                       It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.
                     </p>
                   </div>
