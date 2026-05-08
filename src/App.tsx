@@ -53,13 +53,13 @@ const RadarGridRing: React.FC<{ value: number, colorClass: string, strokeWidth?:
 const LifeRadar = ({ lifeProtocolLevels }: { lifeProtocolLevels: { sleep: number, meditation: number, sunlight: number, walk: number } }) => {
   const cx = 100;
   const cy = 100;
-  const maxRadius = 85;
+  const maxRadius = 65;
   
   const dataPoints = [
-    { value: lifeProtocolLevels.sleep, angle: -Math.PI / 2, label: 'HP' },
-    { value: lifeProtocolLevels.meditation, angle: 0, label: 'Focus' },
-    { value: lifeProtocolLevels.sunlight, angle: Math.PI / 2, label: 'Mental' },
-    { value: lifeProtocolLevels.walk, angle: Math.PI, label: 'Physical' },
+    { value: lifeProtocolLevels.sleep, angle: -Math.PI / 2, label: 'HP', icon: <Heart size={16} /> },
+    { value: lifeProtocolLevels.meditation, angle: 0, label: 'Focus', icon: <Brain size={16} /> },
+    { value: lifeProtocolLevels.sunlight, angle: Math.PI / 2, label: 'Mental', icon: <HeartPulse size={16} /> },
+    { value: lifeProtocolLevels.walk, angle: Math.PI, label: 'Physical', icon: <Dumbbell size={16} /> },
   ];
   
   const polygonPoints = dataPoints.map(p => {
@@ -107,32 +107,32 @@ const LifeRadar = ({ lifeProtocolLevels }: { lifeProtocolLevels: { sleep: number
         {/* Data Vertices */}
         {/* Labels */}
         {dataPoints.map((p, i) => {
-          const labelDist = maxRadius + 15;
+          const labelDist = maxRadius + 32;
           let lx = cx + labelDist * Math.cos(p.angle);
           let ly = cy + labelDist * Math.sin(p.angle);
           
-          let textAnchor = "middle";
-          if (Math.abs(Math.cos(p.angle)) > 0.1) {
-            textAnchor = Math.cos(p.angle) > 0 ? "start" : "end";
-          }
+          let dx = 0;
+          let dy = 0;
           
-          let dy = 3;
-          if (Math.sin(p.angle) > 0.5) dy = 8;
-          else if (Math.sin(p.angle) < -0.5) dy = -2;
+          // Adjust position based on angle to avoid overlapping
+          if (Math.abs(Math.cos(p.angle)) < 0.1) {
+            // Top/Bottom (HP / Physical)
+            dx = -8; 
+            dy = Math.sin(p.angle) > 0 ? 0 : -16;
+          } else {
+            // Left/Right (Focus / Mental)
+            dx = Math.cos(p.angle) > 0 ? 0 : -16;
+            dy = -8;
+          }
 
           return (
-            <text 
+            <g
               key={`label-${i}`} 
-              x={lx} 
-              y={ly + dy} 
-              fill="rgba(255,255,255,0.8)" 
-              fontSize="9" 
-              textAnchor={textAnchor} 
-              fontWeight="bold" 
-              className="tracking-widest uppercase"
+              transform={`translate(${lx + dx}, ${ly + dy})`}
+              className="text-white opacity-80"
             >
-              {p.label}
-            </text>
+              {p.icon}
+            </g>
           );
         })}
 
@@ -210,7 +210,7 @@ const QuoteOfTheDay = () => {
 const HeptaRadar = ({ data, color = "#ff6a00", strokeColor = "#ff8833" }: { data: { day: string; value: number }[], color?: string, strokeColor?: string }) => {
   const size = 500;
   const center = size / 2;
-  const maxRadius = (size / 2) * 0.82; // More space usage
+  const maxRadius = (size / 2) * 0.7; // Reduced to fit labels safely
 
   const getCoordinatesForAngle = (angle: number, radius: number) => {
     return {
@@ -797,13 +797,50 @@ export default function App() {
   const [appThemeColor, setAppThemeColor] = useState(() => {
     return localStorage.getItem('app_theme_color') || "#ff6a00";
   });
-  const [showQuoteBox, setShowQuoteBox] = useState(true);
+  const [appBackgroundColor, setAppBackgroundColor] = useState(() => {
+    return localStorage.getItem('app_background_color') || "#ff6a00";
+  });
+  const [showQuoteBox, setShowQuoteBox] = useState(() => {
+    return localStorage.getItem('app_showQuoteBox') !== 'false';
+  });
+  const [enableOrangeBackgrounds, setEnableOrangeBackgrounds] = useState(() => {
+    return localStorage.getItem('app_orangeBgs') !== 'false';
+  });
+  const [showProfileAndStats, setShowProfileAndStats] = useState(() => {
+    return localStorage.getItem('app_showProfileAndStats') !== 'false';
+  });
+  const [showTabLabels, setShowTabLabels] = useState(() => {
+    return localStorage.getItem('app_showTabLabels') !== 'false';
+  });
+  const [themeBackgrounds, setThemeBackgrounds] = useState(() => {
+    return localStorage.getItem('app_themeBackgrounds') === 'true';
+  });
+
   const dataImportRef = useRef<HTMLInputElement>(null);
 
   // Sync state to LocalStorage
   useEffect(() => {
     localStorage.setItem('app_theme_color', appThemeColor);
   }, [appThemeColor]);
+
+  useEffect(() => {
+    localStorage.setItem('app_background_color', appBackgroundColor);
+  }, [appBackgroundColor]);
+  useEffect(() => {
+    localStorage.setItem('app_showQuoteBox', showQuoteBox.toString());
+  }, [showQuoteBox]);
+  useEffect(() => {
+    localStorage.setItem('app_orangeBgs', enableOrangeBackgrounds.toString());
+  }, [enableOrangeBackgrounds]);
+  useEffect(() => {
+    localStorage.setItem('app_showProfileAndStats', showProfileAndStats.toString());
+  }, [showProfileAndStats]);
+  useEffect(() => {
+    localStorage.setItem('app_showTabLabels', showTabLabels.toString());
+  }, [showTabLabels]);
+  useEffect(() => {
+    localStorage.setItem('app_themeBackgrounds', themeBackgrounds.toString());
+  }, [themeBackgrounds]);
   useEffect(() => {
     localStorage.setItem('app_has_onboarded', hasOnboarded.toString());
   }, [hasOnboarded]);
@@ -826,6 +863,14 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.setProperty('--app-primary', appThemeColor);
   }, [appThemeColor]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-bg-accent', appBackgroundColor);
+    // Add hex opacities for gradients
+    document.documentElement.style.setProperty('--app-bg-accent-20', `${appBackgroundColor}33`);
+    document.documentElement.style.setProperty('--app-bg-accent-10', `${appBackgroundColor}1a`);
+    document.documentElement.style.setProperty('--app-bg-accent-30', `${appBackgroundColor}4d`);
+  }, [appBackgroundColor]);
 
   // Set the default profile fallbacks using either uploaded images from Cyber or unsplash if not present
   const mobileAvatarImg = avatarImages.length > 0 ? avatarImages[0] : fallbackMobileImg;
@@ -876,6 +921,26 @@ export default function App() {
     date: string; // ISO string or just YYYY-MM-DD
     protocolCode?: string;
   }
+
+  // Goals State
+  interface Goal {
+    id: number;
+    title: string;
+    description: string;
+    durationDays: number;
+    startDate: string; // ISO string
+    targetDate: string; // ISO string
+    completed: boolean;
+  }
+  const [goals, setGoals] = useState<Goal[]>(() => {
+    const saved = localStorage.getItem('app_goals');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [newGoalTitle, setNewGoalTitle] = useState("");
+  const [newGoalDescription, setNewGoalDescription] = useState("");
+  const [newGoalDuration, setNewGoalDuration] = useState<string>("7"); // Default 7 days
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [taskLogDate, setTaskLogDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -1022,12 +1087,13 @@ export default function App() {
     return localStorage.getItem('app_isWeekActive') === 'true';
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean}[]>(() => {
+  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean, difficulty?: TaskDifficulty}[]>(() => {
     const saved = localStorage.getItem('app_weeklyMusts');
     return saved ? JSON.parse(saved) : [];
   });
-  const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean}[]>([]);
+  const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean, difficulty?: TaskDifficulty}[]>([]);
   const [tempTaskTitle, setTempTaskTitle] = useState("");
+  const [tempTaskDifficulty, setTempTaskDifficulty] = useState<TaskDifficulty>('medium');
   const [lastResetDate, setLastResetDate] = useState(() => {
     return localStorage.getItem('app_lastResetDate') || new Date().toDateString();
   });
@@ -1095,6 +1161,10 @@ export default function App() {
     localStorage.setItem('app_lifeProtocolLevels', JSON.stringify(lifeProtocolLevels));
   }, [lifeProtocolLevels]);
 
+  useEffect(() => {
+    localStorage.setItem('app_goals', JSON.stringify(goals));
+  }, [goals]);
+
   // Mega Projects State
   interface MegaProject {
     id: number;
@@ -1130,11 +1200,45 @@ export default function App() {
     setProjects(prev => prev.filter(p => p.id !== id));
   };
 
+  const addGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGoalTitle.trim()) return;
+    
+    const days = parseInt(newGoalDuration) || 7;
+    const now = new Date();
+    const target = new Date();
+    target.setDate(now.getDate() + days);
+
+    const goal: Goal = {
+      id: Date.now(),
+      title: newGoalTitle,
+      description: newGoalDescription,
+      durationDays: days,
+      startDate: now.toISOString(),
+      targetDate: target.toISOString(),
+      completed: false
+    };
+    setGoals(prev => [goal, ...prev]);
+    setNewGoalTitle("");
+    setNewGoalDescription("");
+    setNewGoalDuration("7");
+    setIsGoalModalOpen(false);
+  };
+
+  const deleteGoal = (id: number) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+  };
+
+  const toggleGoal = (id: number) => {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !g.completed } : g));
+  };
+
   const exportData = async () => {
     const data = {
       operativeName,
       notifications,
       appThemeColor,
+      showProfileAndStats,
       customAvatar,
       dailyTasks,
       taskHistory,
@@ -1145,7 +1249,9 @@ export default function App() {
       lastResetDate,
       isWeekActive,
       weeklyMusts,
-      weekStartDate
+      weekStartDate,
+      goals,
+      themeBackgrounds
     };
     const jsonStr = JSON.stringify(data, null, 2);
     
@@ -1176,6 +1282,7 @@ export default function App() {
           if (data.operativeName !== undefined) setOperativeName(data.operativeName);
           if (data.notifications !== undefined) setNotifications(data.notifications);
           if (data.appThemeColor !== undefined) setAppThemeColor(data.appThemeColor);
+          if (data.showProfileAndStats !== undefined) setShowProfileAndStats(data.showProfileAndStats);
           if (data.customAvatar !== undefined) setCustomAvatar(data.customAvatar);
           if (data.dailyTasks !== undefined) setDailyTasks(data.dailyTasks);
           if (data.taskHistory !== undefined) setTaskHistory(data.taskHistory);
@@ -1187,6 +1294,8 @@ export default function App() {
           if (data.isWeekActive !== undefined) setIsWeekActive(data.isWeekActive);
           if (data.weeklyMusts !== undefined) setWeeklyMusts(data.weeklyMusts);
           if (data.weekStartDate !== undefined) setWeekStartDate(data.weekStartDate);
+          if (data.goals !== undefined) setGoals(data.goals);
+          if (data.themeBackgrounds !== undefined) setThemeBackgrounds(data.themeBackgrounds);
         } catch (err) {
           console.error("Failed to parse archive data", err);
         }
@@ -1215,10 +1324,12 @@ export default function App() {
       id: Date.now(),
       title: tempTaskTitle,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      done: false
+      done: false,
+      difficulty: tempTaskDifficulty
     };
     setTempTasks(prev => [...prev, newTask]);
     setTempTaskTitle("");
+    setTempTaskDifficulty('medium');
   };
 
   const handleToggleLifeProtocol = (key: string) => {
@@ -1379,7 +1490,25 @@ export default function App() {
           {/* Bento Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
+            {/* Profile Header & Toggle */}
+            <div className="md:col-span-3 flex items-center justify-between mb-[-10px]">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+                <User size={20} className="text-primary" />
+                Profile Overview
+              </h2>
+              <button 
+                onClick={() => setShowProfileAndStats(!showProfileAndStats)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
+              >
+                <ChevronDown 
+                  size={24} 
+                  className={`transition-transform duration-300 ${showProfileAndStats ? 'rotate-180' : ''}`} 
+                />
+              </button>
+            </div>
+
             {/* Unified Profile & Focus Metrics */}
+            {showProfileAndStats && (
             <div className="group bg-[#050505] rounded-xl p-0 md:col-span-3 grid grid-cols-1 md:grid-cols-12 border border-white/10 shadow-sm relative overflow-hidden items-stretch">
               
               {/* Left Side: Avatar Image (Roughly 1/3) */}
@@ -1505,12 +1634,14 @@ export default function App() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Quick Action Pop-up Buttons (Memory Matrix Style) */}
             <div className="md:col-span-3 flex flex-wrap gap-3">
               {[
                 { icon: CheckSquare, label: "Tasks" },
                 { icon: Calendar, label: "Calendar" },
+                { icon: Target, label: "Goals" },
                 { icon: Activity, label: "Analysis" },
                 { icon: Box, label: "Mega Projects" },
                 { icon: User, label: "Account" }
@@ -1531,7 +1662,7 @@ export default function App() {
                     }`}
                   >
                     <Action.icon size={16} className={isActive ? 'text-white' : 'text-muted-foreground group-hover:text-white'} />
-                    {Action.label}
+                    {showTabLabels && <span>{Action.label}</span>}
                   </motion.button>
                 );
               })}
@@ -1543,7 +1674,14 @@ export default function App() {
             {activeTab === "Tasks" && (
               <>
                 {/* Daily Tasks */}
-                <div className="md:col-span-2 card p-6 border border-border/50 shadow-sm flex flex-col gap-6 h-full bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                <div 
+                  className={`md:col-span-2 card p-6 border shadow-lg flex flex-col gap-6 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
+                  style={themeBackgrounds ? { 
+                    background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                    borderColor: 'var(--app-bg-accent-30)',
+                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                  } : {}}
+                >
                   
                   {/* Top Section */}
                   <div className="flex flex-col gap-4 relative z-10 w-full max-w-[800px] mx-auto">
@@ -1566,13 +1704,13 @@ export default function App() {
                       </div>
                       
                       {/* Difficulty Selector */}
-                      <div className="flex rounded-xl bg-[#1A1A1A] border border-white/10 p-1 w-full sm:w-auto self-start sm:self-auto">
+                      <div className="flex rounded-xl bg-transparent gap-2 w-full sm:w-auto self-start sm:self-auto">
                         {(['easy', 'medium', 'hard'] as TaskDifficulty[]).map((diff) => (
                           <button
                             key={diff}
                             type="button"
                             onClick={() => setNewDailyTaskDiff(diff)}
-                            className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${newDailyTaskDiff === diff ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white/80'}`}
+                            className={`flex-1 sm:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all border rounded-lg ${newDailyTaskDiff === diff ? getDifficultyColor(diff) : 'border-white/10 text-muted-foreground bg-black/40 hover:bg-white/5'}`}
                           >
                             {diff}
                           </button>
@@ -1582,10 +1720,10 @@ export default function App() {
 
                     {/* Filter and Progress */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 gap-4 sm:gap-0">
-                      <div className="flex bg-[#1A1A1A] border border-white/10 rounded-lg p-1 w-full sm:w-auto">
-                         <button onClick={() => setTaskFilter('all')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'all' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>All</button>
-                         <button onClick={() => setTaskFilter('active')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'active' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>Active</button>
-                         <button onClick={() => setTaskFilter('completed')} className={`flex-1 sm:flex-none px-4 py-1 text-xs font-medium rounded-md transition-colors ${taskFilter === 'completed' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white'}`}>Completed</button>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                         <button onClick={() => setTaskFilter('all')} className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${taskFilter === 'all' ? 'text-white border-white/30 bg-white/10' : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'}`}>All</button>
+                         <button onClick={() => setTaskFilter('active')} className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${taskFilter === 'active' ? 'text-blue-400 border-blue-400/30 bg-blue-400/10' : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'}`}>Active</button>
+                         <button onClick={() => setTaskFilter('completed')} className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${taskFilter === 'completed' ? 'text-purple-400 border-purple-400/30 bg-purple-400/10' : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'}`}>Completed</button>
                       </div>
 
                       <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
@@ -1606,9 +1744,6 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Glow separator */}
-                  <div className="absolute top-[140px] left-1/2 -translate-x-1/2 w-[70%] sm:w-[50%] h-32 bg-blue-600/20 blur-[50px] sm:blur-[70px] pointer-events-none rounded-full" />
 
                   {/* Task List */}
                   <div className="flex-1 overflow-y-auto z-10 flex flex-col gap-2 rounded-xl bg-[#111111]/50 border border-white/5 p-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
@@ -1653,7 +1788,14 @@ export default function App() {
                 </div>
 
                 {/* Tasks List (Weekly Must) */}
-                <div className="card p-6 border border-border/50 shadow-sm flex flex-col h-full bg-black/[0.55] backdrop-blur-sm relative">
+                <div 
+                  className={`card p-6 border shadow-lg flex flex-col h-full backdrop-blur-sm relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-black/[0.55] border-border/50 shadow-sm'}`}
+                  style={themeBackgrounds ? { 
+                    background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                    borderColor: 'var(--app-bg-accent-30)',
+                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                  } : {}}
+                >
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-lg font-bold flex items-center gap-2">
@@ -1698,6 +1840,11 @@ export default function App() {
                               <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary font-bold drop-shadow-[0_0_5px_rgba(255,106,0,0.3)]' : 'text-foreground font-medium'}`}>{t.title}</span>
                               <div className="flex items-center gap-3">
                                 <span className={`text-[10px] flex items-center gap-1 transition-all ${t.done ? 'text-primary/80' : 'text-muted-foreground'}`}><Clock size={10} /> {t.time}</span>
+                                {t.difficulty && (
+                                  <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
+                                    {t.difficulty}
+                                  </span>
+                                )}
                                 <span className="text-[10px] text-primary/60 font-mono tracking-tighter">PROTO-LOG: {t.id.toString().slice(-4)}</span>
                               </div>
                             </div>
@@ -1714,7 +1861,14 @@ export default function App() {
                 </div>
 
                 {/* Life Protocol Block (Tasks Bottom) */}
-                <div className="md:col-span-3 card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row mt-2 min-h-[200px] gap-8">
+                <div 
+                  className={`md:col-span-3 card p-6 border shadow-lg backdrop-blur-md rounded-2xl flex flex-col md:flex-row mt-2 min-h-[200px] gap-8 relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50 shadow-sm'}`}
+                  style={themeBackgrounds ? { 
+                    background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                    borderColor: 'var(--app-bg-accent-30)',
+                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                  } : {}}
+                >
                   {/* Left: Protocol List */}
                   <div className="flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-6">
@@ -1777,7 +1931,14 @@ export default function App() {
                 <div className="lg:col-span-3 flex flex-col gap-6">
                 
                 {/* Task Logs (Heatmap / Continuous active days) */}
-                <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex flex-col gap-4">
+                <div 
+                  className={`card p-6 border backdrop-blur-md rounded-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-500 shadow-sm ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
+                  style={themeBackgrounds ? { 
+                    background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                    borderColor: 'var(--app-bg-accent-30)',
+                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                  } : undefined}
+                >
                    <div className="flex justify-between items-center cursor-pointer" onClick={() => setShowTaskLog(!showTaskLog)}>
                       <div>
                         <h2 className="text-xl font-bold flex items-center gap-2">
@@ -1843,7 +2004,14 @@ export default function App() {
                    )}
                 </div>
 
-                <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl">
+                <div 
+                  className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
+                  style={themeBackgrounds ? { 
+                    background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                    borderColor: 'var(--app-bg-accent-30)',
+                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                  } : undefined}
+                >
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
                       <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -1883,7 +2051,10 @@ export default function App() {
                     {Array.from({ length: getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth()) }).map((_, i) => {
                       const day = i + 1;
                       const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                      const dateStr = dateObj.toISOString().split('T')[0];
+                      const localYear = dateObj.getFullYear();
+                      const localMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+                      const localDay = String(dateObj.getDate()).padStart(2, '0');
+                      const dateStr = `${localYear}-${localMonth}-${localDay}`;
                       const isToday = new Date().toDateString() === dateObj.toDateString();
                       
                       const dayEvents = events.filter(e => e.date.startsWith(dateStr));
@@ -1925,7 +2096,14 @@ export default function App() {
 
                 {/* Right Side: Upcoming Events */}
                 <div className="flex flex-col gap-6">
-                   <div className="card p-6 border border-border/50 shadow-sm bg-[#0a0a0a]/80 backdrop-blur-md rounded-2xl flex-1 flex flex-col">
+                   <div 
+                     className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl flex-1 flex flex-col relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
+                     style={themeBackgrounds ? { 
+                       background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                       borderColor: 'var(--app-bg-accent-30)',
+                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                     } : undefined}
+                   >
                       <div className="flex items-center justify-between mb-6">
                          <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
                             <TrendingUp size={20} className="text-primary" />
@@ -1943,13 +2121,27 @@ export default function App() {
                       </div>
                       
                       <div className="flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                         {events
-                           .filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0)))
-                           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                           .map(event => {
-                             const evDate = new Date(event.date);
-                             const diffTime = evDate.getTime() - new Date().getTime();
-                             const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24));
+                         {(() => {
+                           const today = new Date();
+                           const todayLocalStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                           const upcomingEvents = events
+                             .filter(e => e.date >= todayLocalStr)
+                             .sort((a, b) => a.date.localeCompare(b.date));
+                           
+                           if (upcomingEvents.length === 0) {
+                             return (
+                               <div className="text-center py-8 opacity-50">
+                                 <p className="text-xs">No upcoming protocols.</p>
+                               </div>
+                             );
+                           }
+
+                           return upcomingEvents.map(event => {
+                             const [year, month, day] = event.date.split('-').map(Number);
+                             const evDateLocal = new Date(year, month - 1, day);
+                             const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                             const diffTime = evDateLocal.getTime() - todayLocal.getTime();
+                             const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
                              
                              return (
                                <div 
@@ -1963,7 +2155,7 @@ export default function App() {
                                          <span className="text-sm font-bold text-white group-hover:text-primary transition-colors tracking-tight">{event.title}</span>
                                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground mt-1">
                                             <Calendar size={12} className="text-primary/70" />
-                                            {evDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {evDateLocal.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                                          </div>
                                       </div>
                                       <div className="flex flex-col items-end gap-2 relative z-10">
@@ -1980,15 +2172,138 @@ export default function App() {
                                 </div>
                              );
                            })
-                         }
-                         {events.filter(e => new Date(e.date) >= new Date(new Date().setHours(0,0,0,0))).length === 0 && (
-                            <div className="text-center py-8 opacity-50">
-                               <p className="text-xs">No upcoming protocols.</p>
-                            </div>
-                         )}
+                         })()}
                       </div>
                    </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === "Goals" && (
+              <div className="md:col-span-3 space-y-6">
+                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
+                  {enableOrangeBackgrounds && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
+                    </>
+                  )}
+                  <div className="relative z-10">
+                    <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
+                      <Target className="text-primary w-6 h-6 md:w-7 md:h-7" />
+                      Strategic Goals
+                    </h2>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-2 tracking-wide">Initiate and track long-term objectives and personal growth protocols.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsGoalModalOpen(true)}
+                    className="relative z-10 flex items-center gap-2 shrink-0 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-4 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl font-semibold tracking-wider text-xs md:text-sm transition-all"
+                  >
+                    <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                    INITIATE GOAL
+                  </button>
+                </div>
+
+                {goals.length === 0 ? (
+                  <div 
+                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl ${themeBackgrounds ? 'border-transparent' : 'border-border/50'}`}
+                    style={themeBackgrounds ? {
+                       background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                       borderColor: 'var(--app-bg-accent-30)',
+                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                    } : undefined}
+                  >
+                    <Target size={48} className="text-muted-foreground mb-4 opacity-50" />
+                    <h3 className="text-xl font-bold mb-2">No Active Goals</h3>
+                    <p className="text-muted-foreground max-w-md">Initiate a new goal to begin tracking your long-term progression matrix.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {goals.map((goal) => {
+                      const now = new Date().getTime();
+                      const start = new Date(goal.startDate).getTime();
+                      const target = new Date(goal.targetDate).getTime();
+                      const total = target - start;
+                      const elapsed = now - start;
+                      const remaining = target - now;
+                      
+                      const progress = Math.min(Math.max((remaining / total) * 100, 0), 100);
+                      
+                      const daysLeft = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                      const hoursLeft = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const minutesLeft = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+                      return (
+                        <div 
+                          key={goal.id} 
+                          className={`border rounded-2xl p-6 hover:border-primary/30 transition-all shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 ${goal.completed ? 'opacity-60' : ''} ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111] border-white/10'}`}
+                          style={themeBackgrounds ? {
+                             background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                             borderColor: 'var(--app-bg-accent-30)',
+                             boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                          } : undefined}
+                        >
+                          <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${goal.completed ? 'bg-green-500/50' : 'bg-primary/50 group-hover:bg-primary'}`}></div>
+                          <div className="flex justify-between items-start mb-4 pl-3">
+                            <div className="flex-1">
+                              <h3 className={`text-xl font-bold leading-tight ${goal.completed ? 'text-white/50 line-through' : 'text-white'}`}>{goal.title}</h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Clock size={12} className="text-primary" />
+                                <span className="text-[10px] font-mono text-primary/80 uppercase tracking-tighter">
+                                  {remaining > 0 ? `${daysLeft}D ${hoursLeft}H ${minutesLeft}M REMAINING` : "TIMELINE CONCLUDED"}
+                                </span>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => toggleGoal(goal.id)}
+                              className={`p-2 rounded-lg transition-colors ${goal.completed ? 'bg-green-500/20 text-green-500' : 'bg-white/5 text-muted-foreground hover:bg-white/10'}`}
+                            >
+                              <Check size={16} />
+                            </button>
+                          </div>
+                          <p className="text-muted-foreground/80 text-sm mb-6 flex-1 pl-3 leading-relaxed">{goal.description}</p>
+                          
+                          <div className="space-y-4 ml-3">
+                            {/* Progress Bar */}
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                <span>Timeline Progression</span>
+                                <span>{Math.round(progress)}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress}%` }}
+                                  className={`h-full transition-all duration-500 ${goal.completed ? 'bg-green-500' : 'bg-primary'}`}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-[8px] text-muted-foreground font-mono font-bold tracking-widest uppercase">Target</span>
+                                <span className="text-xs text-white/90 font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex flex-col gap-0.5 text-right">
+                                <span className="text-[8px] text-muted-foreground font-mono font-bold tracking-widest uppercase">Duration</span>
+                                <span className="text-xs text-white/90 font-medium">{goal.durationDays} Days</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex justify-end">
+                            <button 
+                              onClick={() => deleteGoal(goal.id)}
+                              className="p-1.5 text-red-500/30 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                              title="Abort Goal"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1996,16 +2311,24 @@ export default function App() {
               <div className="md:col-span-3 flex flex-col gap-6" style={(isMobileDevice && analysisView === 'graph') ? { zoom: 0.65 } : {}}>
                 
                 {/* View Toggles */}
-                <div className="flex justify-start gap-2 bg-[#1A1A1A] border border-white/10 rounded-xl p-1 self-start">
-                  <button onClick={() => setAnalysisView('graph')} className={`hidden sm:inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Graphs</button>
-                  <button onClick={() => setAnalysisView('radar')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'radar' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Radar</button>
-                  <button onClick={() => setAnalysisView('block')} className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'block' ? 'bg-white/10 text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>Block Craft</button>
+                <div className="flex justify-start gap-2 border rounded-xl p-1 self-start relative overflow-hidden group bg-cyan-500/10 border-cyan-500/20">
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-cyan-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                  <button onClick={() => setAnalysisView('graph')} className={`relative z-10 hidden sm:inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Graphs</button>
+                  <button onClick={() => setAnalysisView('radar')} className={`relative z-10 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'radar' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Radar</button>
+                  <button onClick={() => setAnalysisView('block')} className={`relative z-10 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'block' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Block Craft</button>
                 </div>
 
                 {analysisView === 'radar' && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                     {/* Daily Radar Performance Graph */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
                          <h2 className="text-xl font-bold flex items-center gap-2">
                            <Activity size={20} className="text-primary" />
@@ -2019,7 +2342,14 @@ export default function App() {
                     </div>
 
                     {/* Weekly Must Radar Performance Graph */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
                          <h2 className="text-xl font-bold flex items-center gap-2">
                            <Target size={20} className="text-blue-400" />
@@ -2038,7 +2368,14 @@ export default function App() {
                   <div className="hidden sm:grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     {/* Daily Task Performance Graph */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
                           <Target size={20} className="text-primary" />
@@ -2071,7 +2408,14 @@ export default function App() {
                     </div>
 
                     {/* Weekly Must Performance Graph */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
                           <Zap size={20} className="text-blue-500" />
@@ -2108,7 +2452,14 @@ export default function App() {
                 {analysisView === 'block' && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Daily Block Craft */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
                           <Target size={20} className="text-primary" />
@@ -2135,7 +2486,14 @@ export default function App() {
                     </div>
 
                     {/* Weekly Must Block Craft */}
-                    <div className="card p-6 border border-border/50 shadow-sm bg-[#111111]/80 backdrop-blur-md rounded-2xl relative overflow-hidden">
+                    <div 
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
+                      style={themeBackgrounds ? {
+                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                         borderColor: 'var(--app-bg-accent-30)',
+                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                      } : undefined}
+                    >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
                           <Zap size={20} className="text-blue-500" />
@@ -2167,8 +2525,14 @@ export default function App() {
 
             {activeTab === "Mega Projects" && (
               <div className="md:col-span-3 space-y-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 bg-[#0a0a0a] p-5 md:p-6 rounded-2xl border border-white/5 shadow-lg">
-                  <div>
+                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
+                  {enableOrangeBackgrounds && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
+                    </>
+                  )}
+                  <div className="relative z-10">
                     <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
                       <Box className="text-primary w-6 h-6 md:w-7 md:h-7" />
                       Mega Projects
@@ -2177,7 +2541,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="flex items-center gap-2 shrink-0 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-4 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl font-semibold tracking-wider text-xs md:text-sm transition-all"
+                    className="relative z-10 flex items-center gap-2 shrink-0 bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-4 py-2 md:px-5 md:py-2.5 rounded-lg md:rounded-xl font-semibold tracking-wider text-xs md:text-sm transition-all"
                   >
                     <Plus className="w-4 h-4 md:w-5 md:h-5" />
                     INITIALIZE
@@ -2185,7 +2549,14 @@ export default function App() {
                 </div>
 
                 {projects.length === 0 ? (
-                  <div className="card p-12 border border-border/50 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div 
+                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl ${themeBackgrounds ? 'border-transparent' : 'border-border/50'}`}
+                    style={themeBackgrounds ? {
+                       background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                       borderColor: 'var(--app-bg-accent-30)',
+                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                    } : undefined}
+                  >
                     <Box size={48} className="text-muted-foreground mb-4 opacity-50" />
                     <h3 className="text-xl font-bold mb-2">No Active Architectures</h3>
                     <p className="text-muted-foreground max-w-md">Initialize a new Mega Project to allocate resources and assign assisting nodes to critical operations.</p>
@@ -2193,7 +2564,15 @@ export default function App() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {projects.map((proj) => (
-                      <div key={proj.id} className="bg-[#111111] border border-white/10 rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg flex flex-col h-full relative overflow-hidden group">
+                      <div 
+                        key={proj.id} 
+                        className={`border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111] border-white/10'}`}
+                        style={themeBackgrounds ? {
+                           background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                           borderColor: 'var(--app-bg-accent-30)',
+                           boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                        } : undefined}
+                      >
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/50 group-hover:bg-primary transition-colors"></div>
                         <div className="flex justify-between items-start mb-4 pl-3">
                           <h3 className="text-xl font-bold text-white leading-tight">{proj.name}</h3>
@@ -2237,8 +2616,14 @@ export default function App() {
               <div className="md:col-span-3 space-y-6">
                 
                 {/* Header */}
-                <div className="flex items-center gap-4 bg-[#0a0a0a] p-5 md:p-6 rounded-2xl border border-white/5 shadow-lg">
-                  <div>
+                <div className={`flex items-center gap-4 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
+                  {enableOrangeBackgrounds && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
+                    </>
+                  )}
+                  <div className="relative z-10 w-full">
                     <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide">Operative Profile</h2>
                     <p className="text-sm text-primary font-mono mt-1 uppercase tracking-widest">{operativeName}</p>
                   </div>
@@ -2246,7 +2631,14 @@ export default function App() {
 
                 <div className="space-y-6">
                    {/* Operative Alias Box */}
-                   <div className="card p-6 border border-border/50 shadow-sm flex flex-col bg-[#050505]">
+                   <div 
+                     className={`card p-6 border shadow-sm flex flex-col transition-all duration-500 rounded-2xl relative overflow-hidden ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
+                     style={themeBackgrounds ? {
+                        background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                        borderColor: 'var(--app-bg-accent-30)',
+                        boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                     } : undefined}
+                   >
                       <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                         <User size={18} className="text-primary" />
                         Operative Alias
@@ -2262,7 +2654,14 @@ export default function App() {
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        {/* Avatar / Identity Selection */}
-                       <div className="card p-6 border border-border/50 shadow-sm flex flex-col bg-[#050505] overflow-hidden">
+                       <div 
+                         className={`card p-6 border shadow-sm flex flex-col overflow-hidden transition-all duration-500 rounded-2xl relative ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
+                         style={themeBackgrounds ? {
+                            background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                            borderColor: 'var(--app-bg-accent-30)',
+                            boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                         } : undefined}
+                       >
                           <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                             <Camera size={18} className="text-primary" />
                             Visual Identifier
@@ -2304,7 +2703,14 @@ export default function App() {
                        </div>
 
                        {/* System Preferences & Data Management */}
-                       <div className="card p-6 border border-border/50 shadow-sm flex flex-col gap-6 bg-[#050505]">
+                       <div 
+                         className={`card p-6 border shadow-sm flex flex-col gap-6 transition-all duration-500 rounded-2xl relative overflow-hidden ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
+                         style={themeBackgrounds ? {
+                            background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                            borderColor: 'var(--app-bg-accent-30)',
+                            boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                         } : undefined}
+                       >
                           <div>
                             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                               <Settings size={18} className="text-primary" />
@@ -2338,6 +2744,98 @@ export default function App() {
                                  <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showQuoteBox ? 'right-1' : 'left-1'}`}></div>
                                </button>
                             </div>
+
+                            {/* Section Backgrounds Toggle */}
+                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">Orange Section Backgrounds</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle immersive styling for Goals, Projects and Profile</p>
+                               </div>
+                               <button 
+                                 onClick={() => setEnableOrangeBackgrounds(!enableOrangeBackgrounds)}
+                                 className={`w-11 h-6 rounded-full transition-colors relative ${enableOrangeBackgrounds ? 'bg-primary' : 'bg-white/10'}`}
+                               >
+                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${enableOrangeBackgrounds ? 'right-1' : 'left-1'}`}></div>
+                               </button>
+                            </div>
+
+                             {/* Profile & Stats Toggle */}
+                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">Profile & Life Stats</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle visibility on the dashboard</p>
+                               </div>
+                               <button 
+                                 onClick={() => setShowProfileAndStats(!showProfileAndStats)}
+                                 className={`w-11 h-6 rounded-full transition-colors relative ${showProfileAndStats ? 'bg-primary' : 'bg-white/10'}`}
+                               >
+                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showProfileAndStats ? 'right-1' : 'left-1'}`}></div>
+                               </button>
+                            </div>
+
+                             {/* Tab Labels Toggle */}
+                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                               <div>
+                                  <p className="text-sm font-medium text-white">Navigation Labels</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Show text labels next to tab icons</p>
+                               </div>
+                               <button 
+                                 onClick={() => setShowTabLabels(!showTabLabels)}
+                                 className={`w-11 h-6 rounded-full transition-colors relative ${showTabLabels ? 'bg-primary' : 'bg-white/10'}`}
+                               >
+                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showTabLabels ? 'right-1' : 'left-1'}`}></div>
+                               </button>
+                            </div>
+
+                          </div>
+
+                          <div>
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                              <LayoutGrid size={18} className="text-primary" />
+                              Color Themes and Background
+                            </h3>
+
+                             {/* Background Accent Protocol */}
+                             <div className={`mt-4 flex flex-col gap-4 p-4 rounded-xl border transition-all duration-300 ${appBackgroundColor !== appThemeColor ? 'bg-white/[0.04] border-white/20' : 'bg-white/[0.02] border-white/5'}`}>
+                               <div className="flex items-center justify-between gap-4 w-full">
+                                  <div className="flex-1 min-w-0">
+                                     <p className="text-sm font-medium text-white truncate sm:whitespace-normal">Background Accent Protocol</p>
+                                     <p className="text-xs text-muted-foreground mt-0.5 truncate sm:whitespace-normal">Define background decorative spectrum across all tabs</p>
+                                  </div>
+                                  <div className="flex items-center gap-4 shrink-0 ml-auto">
+                                    <input 
+                                      type="color" 
+                                      value={appBackgroundColor}
+                                      onChange={(e) => setAppBackgroundColor(e.target.value)}
+                                      className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0"
+                                    />
+                                    <button 
+                                      onClick={() => setThemeBackgrounds(!themeBackgrounds)}
+                                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${themeBackgrounds ? 'bg-primary' : 'bg-white/10'}`}
+                                    >
+                                      <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${themeBackgrounds ? 'right-1' : 'left-1'}`}></div>
+                                    </button>
+                                  </div>
+                               </div>
+                               
+                               <div className="flex items-center gap-2 pt-2 border-t border-white/5 flex-wrap">
+                                 {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF', '#6366f1', '#ec4899'].map((color) => (
+                                   <button
+                                     key={color}
+                                     onClick={() => setAppBackgroundColor(color)}
+                                     className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 shrink-0 ${appBackgroundColor === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent'}`}
+                                     style={{ backgroundColor: color }}
+                                     title={color}
+                                   />
+                                 ))}
+                                 <button 
+                                   onClick={() => setAppBackgroundColor(appThemeColor)}
+                                   className="text-[10px] text-muted-foreground hover:text-white transition-all ml-auto underline whitespace-nowrap"
+                                 >
+                                   Sync with System
+                                 </button>
+                               </div>
+                             </div>
 
                              {/* Theme Color Input */}
                             <div className="mt-4 flex flex-col gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
@@ -2426,7 +2924,14 @@ export default function App() {
               ) : (
                 tempTasks.map((t, idx) => (
                   <div key={t.id} className="text-sm p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between items-center">
-                    <span>{idx + 1}. {t.title}</span>
+                    <div className="flex items-center gap-2">
+                       <span>{idx + 1}. {t.title}</span>
+                       {t.difficulty && (
+                         <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
+                           {t.difficulty}
+                         </span>
+                       )}
+                    </div>
                     <button 
                       onClick={() => setTempTasks(prev => prev.filter(task => task.id !== t.id))}
                       className="text-red-400 hover:text-red-300 text-xs uppercase tracking-wide"
@@ -2438,20 +2943,38 @@ export default function App() {
               )}
             </div>
 
-            <form onSubmit={addTempTask} className="flex gap-2 mb-6">
-              <input 
-                type="text" 
-                value={tempTaskTitle}
-                onChange={(e) => setTempTaskTitle(e.target.value)}
-                placeholder="Enter mandatory daily task..."
-                className="bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm flex-1 focus:outline-none focus:border-primary/50 transition-colors text-white"
-              />
-              <button 
-                type="submit"
-                className="bg-white/10 hover:bg-white/20 text-white rounded-xl px-6 py-3 text-sm font-bold transition-all"
-              >
-                Queue
-              </button>
+            <form onSubmit={addTempTask} className="flex flex-col gap-3 mb-6">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={tempTaskTitle}
+                  onChange={(e) => setTempTaskTitle(e.target.value)}
+                  placeholder="Enter mandatory daily task..."
+                  className="bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:border-primary/50 transition-colors text-white"
+                />
+                <button 
+                  type="submit"
+                  className="bg-primary hover:bg-primary/80 text-white rounded-lg px-2 py-1 flex items-center justify-center transition-all"
+                >
+                  <Check size={16} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                {(['easy', 'medium', 'hard'] as TaskDifficulty[]).map(diff => (
+                   <button
+                     key={diff}
+                     type="button"
+                     onClick={() => setTempTaskDifficulty(diff)}
+                     className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                       tempTaskDifficulty === diff 
+                         ? getDifficultyColor(diff) 
+                         : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'
+                     }`}
+                   >
+                     {diff}
+                   </button>
+                ))}
+              </div>
             </form>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
@@ -2746,6 +3269,76 @@ export default function App() {
                    Initialize
                  </button>
               </div>
+           </motion.div>
+        </div>
+      )}
+
+      {/* Goal Setup Modal */}
+      {isGoalModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-[#0a0a0a] border border-white/10 p-8 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden"
+           >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+              
+              <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Initiate Goal</h2>
+              <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono mb-6">Strategic Objective Alignment</p>
+              
+              <form onSubmit={addGoal} className="space-y-4 mb-8">
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Goal Name</label>
+                   <input 
+                     autoFocus
+                     type="text"
+                     value={newGoalTitle}
+                     onChange={(e) => setNewGoalTitle(e.target.value)}
+                     placeholder="e.g. Master React Architecture"
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                   />
+                </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Duration (Days)</label>
+                   <input 
+                     type="number"
+                     min="1"
+                     value={newGoalDuration}
+                     onChange={(e) => setNewGoalDuration(e.target.value)}
+                     placeholder="e.g. 7"
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                   />
+                </div>
+                <div>
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Mission Description</label>
+                   <textarea 
+                     value={newGoalDescription}
+                     onChange={(e) => setNewGoalDescription(e.target.value)}
+                     placeholder="Detailed breakdown of the goal logic..."
+                     className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium min-h-[100px] resize-none scrollbar-thin scrollbar-thumb-white/10"
+                   />
+                </div>
+                <div className="flex gap-3 pt-2">
+                   <button 
+                    type="button"
+                    onClick={() => {
+                      setIsGoalModalOpen(false);
+                      setNewGoalTitle("");
+                      setNewGoalDescription("");
+                      setNewGoalDuration("");
+                    }}
+                    className="flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-white/5 transition-all border border-white/5"
+                   >
+                     Abort
+                   </button>
+                   <button 
+                    type="submit"
+                    className="flex-[2] py-3 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                   >
+                     Initialize Protocol
+                   </button>
+                </div>
+              </form>
            </motion.div>
         </div>
       )}
