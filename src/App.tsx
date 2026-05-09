@@ -1485,6 +1485,21 @@ export default function App() {
         {/* Dashboard Content Container */}
         <div className="px-6 pb-6 max-w-[1400px] mx-auto w-full flex-1 flex flex-col gap-6">
           
+          {/* Top Header with Logo */}
+          <div className="w-full flex justify-between items-center bg-black/40 border border-white/5 backdrop-blur-md p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,106,0,0.3)] border border-primary/20 bg-black flex items-center justify-center p-1">
+                 <img src="/Profile/Logo%20Life%20Planner.png" alt="Life Planner Logo" className="w-full h-full object-contain filter drop-shadow-md" />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-primary/80 tracking-tighter uppercase leading-none">
+                  Life Planner
+                </h1>
+                <span className="text-[10px] text-primary/70 font-mono tracking-widest uppercase">System Protocol</span>
+              </div>
+            </div>
+          </div>
+
           {showQuoteBox && <QuoteOfTheDay />}
 
           {/* Bento Grid layout */}
