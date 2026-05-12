@@ -953,6 +953,7 @@ export default function App() {
 
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isViewEventsModalOpen, setIsViewEventsModalOpen] = useState(false);
+  const [viewLogTasksDate, setViewLogTasksDate] = useState<string | null>(null);
   const [selectedEventDetails, setSelectedEventDetails] = useState<CalendarEvent | null>(null);
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
@@ -997,10 +998,11 @@ export default function App() {
       { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
     ];
   });
-  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number }>>(() => {
+  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number, tasks?: DailyTask[] }>>(() => {
     const saved = localStorage.getItem('app_taskHistory');
     return saved ? JSON.parse(saved) : {};
   });
+  const dailyTasksRef = useRef<DailyTask[]>([]);
   const [newDailyTaskTitle, setNewDailyTaskTitle] = useState("");
   const [newDailyTaskDiff, setNewDailyTaskDiff] = useState<TaskDifficulty>("medium");
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -1064,6 +1066,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    dailyTasksRef.current = dailyTasks;
     const total = calculateTotalDailyPoints();
     const current = calculateDailyPoints();
     let intensity = 0;
@@ -1074,10 +1077,10 @@ export default function App() {
     const today = new Date();
     const todayStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
     setTaskHistory(prev => {
-      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage) return prev;
+      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage && JSON.stringify(prev[todayStr]?.tasks) === JSON.stringify(dailyTasks)) return prev;
       return {
         ...prev,
-        [todayStr]: { intensity, percentage }
+        [todayStr]: { intensity, percentage, tasks: dailyTasks }
       };
     });
   }, [dailyTasks]);
@@ -1363,8 +1366,22 @@ export default function App() {
       
       // 1. Midnight Reset (Resets task 'done' status)
       if (todayStr !== lastResetDate) {
+        // Save the old day tasks to history
+        const resetDateObj = new Date(lastResetDate);
+        const y = resetDateObj.getFullYear();
+        const m = String(resetDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(resetDateObj.getDate()).padStart(2, '0');
+        const oldDateStr = `${y}-${m}-${d}`;
+        setTaskHistory(prev => ({
+          ...prev,
+          [oldDateStr]: {
+            ...(prev[oldDateStr] || { intensity: 0 }),
+            tasks: [...dailyTasksRef.current]
+          }
+        }));
+
         setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
-        setDailyTasks(prev => prev.map(m => ({ ...m, done: false })));
+        setDailyTasks([]);
         
         const daysPassed = Math.floor((today.getTime() - lastReset.getTime()) / (1000 * 3600 * 24));
         if (daysPassed > 0) {
@@ -1995,7 +2012,29 @@ export default function App() {
                            return (
                              <div 
                                key={`day-${taskLogDate.getMonth()}-${dayIdx}`} 
-                               className={`w-6 h-6 sm:w-8 sm:h-8 rounded-sm ${opacities[intensity] || opacities[0]} border border-white/5 flex items-center justify-center text-[10px] sm:text-xs font-mono text-white/40`}
+                               className={`w-6 h-6 sm:w-8 sm:h-8 rounded-sm ${opacities[intensity] || opacities[0]} border border-white/5 flex items-center justify-center text-[10px] sm:text-xs font-mono transition-colors ${
+                                  (() => {
+                                    const now = new Date();
+                                    now.setHours(0,0,0,0);
+                                    const checkDate = new Date(y, Number(m) - 1, Number(d));
+                                    const daysDiff = Math.floor((now.getTime() - checkDate.getTime()) / (1000 * 3600 * 24));
+                                    const isWithin7Days = daysDiff >= 0 && daysDiff <= 7;
+                                    const hasTasks = history?.tasks && history.tasks.length > 0;
+                                    return isWithin7Days && hasTasks;
+                                  })()
+                                    ? 'text-white cursor-pointer hover:border-primary' : 'text-white/40'
+                                }`}
+                               onClick={() => {
+                                  const now = new Date();
+                                  now.setHours(0,0,0,0);
+                                  const checkDate = new Date(y, Number(m) - 1, Number(d));
+                                  const daysDiff = Math.floor((now.getTime() - checkDate.getTime()) / (1000 * 3600 * 24));
+                                  const isWithin7Days = daysDiff >= 0 && daysDiff <= 7;
+                                  const hasTasks = history?.tasks && history.tasks.length > 0;
+                                  if (isWithin7Days && hasTasks) {
+                                    setViewLogTasksDate(dateStr);
+                                  }
+                                }}
                                title={`Activity level: ${intensity} on ${dayIdx + 1}`}
                              >
                                {dayIdx + 1}
@@ -3354,6 +3393,58 @@ export default function App() {
                    </button>
                 </div>
               </form>
+           </motion.div>
+        </div>
+      )}
+
+      {/* View Task Log Modal */}
+      {viewLogTasksDate && (
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4">
+           <motion.div 
+             initial={{ scale: 0.9, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-[#0a0a0a] border border-white/10 p-8 rounded-3xl w-full max-w-lg shadow-2xl relative overflow-hidden"
+           >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
+              
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Timeline Archive</h2>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
+                    {new Date(viewLogTasksDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+                <button onClick={() => setViewLogTasksDate(null)} className="text-white/40 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors">
+                  <CheckSquare size={20} className="opacity-0" /> {/* Spacer */}
+                  <span className="absolute top-8 right-8 text-xs font-black uppercase tracking-widest">Close</span>
+                </button>
+              </div>
+              
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                {taskHistory[viewLogTasksDate]?.tasks?.map((task) => (
+                  <div key={task.id} className="relative group overflow-hidden bg-white/[0.02] border border-white/5 hover:border-white/10 p-4 rounded-xl transition-all flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
+                       <h3 className={`text-sm font-bold ${task.done ? 'text-white/40 line-through' : 'text-white'}`}>{task.title}</h3>
+                       <div className="flex items-center gap-3 mt-1">
+                          <span className={`text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 rounded border font-bold bg-transparent ${getDifficultyColor(task.difficulty)}`}>
+                            {task.difficulty}
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground/60 flex items-center gap-1">
+                            <Clock size={10} /> {task.time}
+                          </span>
+                       </div>
+                    </div>
+                    <div className="text-white/30">
+                       {task.done ? <Check size={18} className="text-green-500" /> : <MoreHorizontal size={18} />}
+                    </div>
+                  </div>
+                ))}
+                {!taskHistory[viewLogTasksDate]?.tasks?.length && (
+                  <div className="text-center p-8 border border-white/5 border-dashed rounded-xl mt-4">
+                    <p className="text-sm text-white/40">No records found for this temporal coordinate.</p>
+                  </div>
+                )}
+              </div>
            </motion.div>
         </div>
       )}
