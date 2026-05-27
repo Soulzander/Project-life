@@ -508,6 +508,39 @@ const PreviewSlider = () => {
   );
 };
 
+const WeeklyCountdown = ({ startDate }: { startDate: string }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const start = new Date(startDate).getTime();
+      const end = start + 7 * 24 * 60 * 60 * 1000;
+      const now = new Date().getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft("00:00:00:00");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / 1000 / 60) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft(
+        `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+      );
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [startDate]);
+
+  return <span>{timeLeft} UNTIL CYCLE RESET</span>;
+};
+
 const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCustomAvatar, avatarImages, handleImageUpload, notifications, setNotifications, onFinish }: any) => {
   const [step, setStep] = useState<'welcome' | 'alias' | 'avatar' | 'notifications' | 'protocolInfo' | 'preview' | 'entering'>('welcome');
   const [displayedText, setDisplayedText] = useState('');
@@ -992,11 +1025,7 @@ export default function App() {
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>(() => {
     const saved = localStorage.getItem('app_dailyTasks');
     if (saved) return JSON.parse(saved);
-    return [
-      { id: 1, title: "Initial System Check", difficulty: "easy", done: false, time: "08:00 AM" },
-      { id: 2, title: "Data Migration", difficulty: "medium", done: false, time: "10:30 AM" },
-      { id: 3, title: "Core Architecture", difficulty: "hard", done: false, time: "01:00 PM" }
-    ];
+    return [];
   });
   const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number, tasks?: DailyTask[] }>>(() => {
     const saved = localStorage.getItem('app_taskHistory');
@@ -1359,7 +1388,7 @@ export default function App() {
 
   // Auto-reset logic for midnight and weekly rotation
   useEffect(() => {
-    const interval = setInterval(() => {
+    const checkResets = () => {
       const today = new Date();
       const todayStr = today.toDateString();
       const lastReset = new Date(lastResetDate);
@@ -1419,7 +1448,13 @@ export default function App() {
           setWeekStartDate(null);
         }
       }
-    }, 10000); // Check frequently to keep UI responsive
+    };
+
+    // Run the check once immediately so stale data is wiped instantly
+    checkResets();
+
+    // Check every second to catch midnight exactly
+    const interval = setInterval(checkResets, 1000);
 
     return () => clearInterval(interval);
   }, [lastResetDate, weekStartDate, lifeProtocol]);
@@ -1837,9 +1872,17 @@ export default function App() {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Current Sync: Phase 01</p>
                     </div>
                     {isWeekActive && weekStartDate && (
-                      <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded">
-                        WEEK LOCKED
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded font-bold">
+                          WEEK LOCKED
+                        </span>
+                        <button 
+                          onClick={() => { setTempTasks([...weeklyMusts]); setIsModalOpen(true); }}
+                          className="text-[10px] bg-white/5 hover:bg-white/10 text-white border border-white/10 px-2.5 py-1 rounded font-bold hover:border-primary/50 transition-all uppercase tracking-wider"
+                        >
+                          Modify
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -1885,7 +1928,7 @@ export default function App() {
                       </div>
                       <div className="mt-6 pt-4 border-t border-white/5 text-center">
                         <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-mono">
-                          Directives reset daily at 00:00
+                          {isWeekActive && weekStartDate ? <WeeklyCountdown startDate={weekStartDate} /> : 'Directives reset daily at 00:00'}
                         </p>
                       </div>
                     </>
@@ -2020,7 +2063,7 @@ export default function App() {
                                     const daysDiff = Math.floor((now.getTime() - checkDate.getTime()) / (1000 * 3600 * 24));
                                     const isWithin7Days = daysDiff >= 0 && daysDiff <= 7;
                                     const hasTasks = history?.tasks && history.tasks.length > 0;
-                                    return isWithin7Days && hasTasks;
+                                    return isWithin7Days;
                                   })()
                                     ? 'text-white cursor-pointer hover:border-primary' : 'text-white/40'
                                 }`}
@@ -2031,7 +2074,7 @@ export default function App() {
                                   const daysDiff = Math.floor((now.getTime() - checkDate.getTime()) / (1000 * 3600 * 24));
                                   const isWithin7Days = daysDiff >= 0 && daysDiff <= 7;
                                   const hasTasks = history?.tasks && history.tasks.length > 0;
-                                  if (isWithin7Days && hasTasks) {
+                                  if (isWithin7Days) {
                                     setViewLogTasksDate(dateStr);
                                   }
                                 }}
@@ -2448,7 +2491,7 @@ export default function App() {
                               </linearGradient>
                             </defs>
                             <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tickFormatter={(v) => `${v}%`} stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                             <RechartsTooltip 
                               contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
@@ -2488,7 +2531,7 @@ export default function App() {
                               </linearGradient>
                             </defs>
                             <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tickFormatter={(v) => `${v}%`} stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                             <RechartsTooltip 
                               contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
@@ -3411,7 +3454,10 @@ export default function App() {
                 <div>
                   <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Timeline Archive</h2>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
-                    {new Date(viewLogTasksDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    {(() => {
+                      const [y, m, d] = viewLogTasksDate.split('-').map(Number);
+                      return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    })()}
                   </p>
                 </div>
                 <button onClick={() => setViewLogTasksDate(null)} className="text-white/40 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors">
@@ -3440,8 +3486,12 @@ export default function App() {
                   </div>
                 ))}
                 {!taskHistory[viewLogTasksDate]?.tasks?.length && (
-                  <div className="text-center p-8 border border-white/5 border-dashed rounded-xl mt-4">
-                    <p className="text-sm text-white/40">No records found for this temporal coordinate.</p>
+                  <div className="py-12 flex flex-col items-center justify-center border border-white/5 bg-white/[0.01] rounded-2xl text-center">
+                     <div className="w-12 h-12 bg-white/5 rounded-full border border-white/10 flex items-center justify-center mb-4 text-muted-foreground">
+                        <CheckSquare size={20} />
+                     </div>
+                     <h3 className="text-base font-bold text-white mb-2">No Task Added</h3>
+                     <p className="text-xs text-muted-foreground max-w-[240px] mx-auto">No active directives were programmed or executed for this spatial-temporal track.</p>
                   </div>
                 )}
               </div>
