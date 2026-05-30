@@ -1027,7 +1027,7 @@ export default function App() {
     if (saved) return JSON.parse(saved);
     return [];
   });
-  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number, tasks?: DailyTask[] }>>(() => {
+  const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number, tasks?: DailyTask[], weeklyPercentage?: number }>>(() => {
     const saved = localStorage.getItem('app_taskHistory');
     return saved ? JSON.parse(saved) : {};
   });
@@ -1094,25 +1094,7 @@ export default function App() {
     }, 0);
   };
 
-  useEffect(() => {
-    dailyTasksRef.current = dailyTasks;
-    const total = calculateTotalDailyPoints();
-    const current = calculateDailyPoints();
-    let intensity = 0;
-    if (total > 0 && current > 0) {
-      intensity = Math.ceil((current / total) * 4); // 1 to 4
-    }
-    const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-    const today = new Date();
-    const todayStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
-    setTaskHistory(prev => {
-      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage && JSON.stringify(prev[todayStr]?.tasks) === JSON.stringify(dailyTasks)) return prev;
-      return {
-        ...prev,
-        [todayStr]: { intensity, percentage, tasks: dailyTasks }
-      };
-    });
-  }, [dailyTasks]);
+
 
   // Weekly Must State & Lockdown Logic
   const [isWeekActive, setIsWeekActive] = useState(() => {
@@ -1132,6 +1114,28 @@ export default function App() {
   const [weekStartDate, setWeekStartDate] = useState<string | null>(() => {
     return localStorage.getItem('app_weekStartDate') || null;
   });
+
+  useEffect(() => {
+    dailyTasksRef.current = dailyTasks;
+    const total = calculateTotalDailyPoints();
+    const current = calculateDailyPoints();
+    let intensity = 0;
+    if (total > 0 && current > 0) {
+      intensity = Math.ceil((current / total) * 4); // 1 to 4
+    }
+    const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+    const weeklyPercentage = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
+
+    const today = new Date();
+    const todayStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    setTaskHistory(prev => {
+      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage && prev[todayStr]?.weeklyPercentage === weeklyPercentage && JSON.stringify(prev[todayStr]?.tasks) === JSON.stringify(dailyTasks)) return prev;
+      return {
+        ...prev,
+        [todayStr]: { intensity, percentage, tasks: dailyTasks, weeklyPercentage }
+      };
+    });
+  }, [dailyTasks, weeklyMusts]);
 
   useEffect(() => {
     localStorage.setItem('app_isWeekActive', isWeekActive.toString());
@@ -1482,6 +1486,7 @@ export default function App() {
         const historyObj = taskHistory[dateStr];
         if (historyObj) {
           dailyPct = historyObj.percentage !== undefined ? historyObj.percentage : (historyObj.intensity * 25);
+          weeklyPct = historyObj.weeklyPercentage !== undefined ? historyObj.weeklyPercentage : 0;
         }
       }
 
