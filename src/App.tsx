@@ -1,7 +1,7 @@
-import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check, Upload, Quote, ChevronUp, ChevronDown } from 'lucide-react';
+import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Zap, Clock, MoreHorizontal, CheckSquare, Box, User, ChevronLeft, ChevronRight, Download, Camera, Trash2, Plus, LayoutGrid, TrendingUp, Heart, Brain, Dumbbell, HeartPulse, Check, Upload, Quote, ChevronUp, ChevronDown, GripVertical, X } from 'lucide-react';
 import JSZip from 'jszip';
 import { motion, AnimatePresence } from 'motion/react';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import quotesData from './quotes.json';
 
@@ -808,6 +808,28 @@ const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCu
   );
 };
 
+const CurrentTimeLine = () => {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  const minSinceMidnight = (now.getTime() - startOfDay.getTime()) / 60000;
+  
+  const topPercent = (minSinceMidnight / (24 * 60)) * 100;
+  
+  return (
+    <div 
+      className="absolute left-0 right-0 h-[2px] bg-red-500 z-40 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+      style={{ top: `calc(${topPercent}% - 1px)` }}
+    >
+      <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]" />
+    </div>
+  );
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("Tasks");
 
@@ -1021,11 +1043,17 @@ export default function App() {
     difficulty: TaskDifficulty;
     done: boolean;
     time: string;
+    color?: string;
+    timelineDuration?: number;
   }
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>(() => {
     const saved = localStorage.getItem('app_dailyTasks');
     if (saved) return JSON.parse(saved);
     return [];
+  });
+  const [timelineBlocks, setTimelineBlocks] = useState<Record<string, { id: number, title: string, difficulty: TaskDifficulty, color?: string }>>(() => {
+    const saved = localStorage.getItem('app_timelineBlocks');
+    return saved ? JSON.parse(saved) : {};
   });
   const [taskHistory, setTaskHistory] = useState<Record<string, { intensity: number, percentage?: number, tasks?: DailyTask[], weeklyPercentage?: number }>>(() => {
     const saved = localStorage.getItem('app_taskHistory');
@@ -1046,6 +1074,14 @@ export default function App() {
 
   const toggleDailyTask = (id: number) => {
     setDailyTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  };
+
+  const updateDailyTaskColor = (id: number, color: string) => {
+    setDailyTasks(prev => prev.map(t => t.id === id ? { ...t, color } : t));
+  };
+
+  const updateDailyTaskDuration = (id: number, timelineDuration: number) => {
+    setDailyTasks(prev => prev.map(t => t.id === id ? { ...t, timelineDuration } : t));
   };
   
   const addDailyTask = (e: React.FormEvent) => {
@@ -1186,6 +1222,10 @@ export default function App() {
   }, [taskHistory]);
 
   useEffect(() => {
+    localStorage.setItem('app_timelineBlocks', JSON.stringify(timelineBlocks));
+  }, [timelineBlocks]);
+
+  useEffect(() => {
     localStorage.setItem('app_lastResetDate', lastResetDate);
   }, [lastResetDate]);
 
@@ -1277,6 +1317,7 @@ export default function App() {
       showProfileAndStats,
       customAvatar,
       dailyTasks,
+      timelineBlocks,
       taskHistory,
       events,
       projects,
@@ -1321,6 +1362,7 @@ export default function App() {
           if (data.showProfileAndStats !== undefined) setShowProfileAndStats(data.showProfileAndStats);
           if (data.customAvatar !== undefined) setCustomAvatar(data.customAvatar);
           if (data.dailyTasks !== undefined) setDailyTasks(data.dailyTasks);
+          if (data.timelineBlocks !== undefined) setTimelineBlocks(data.timelineBlocks);
           if (data.taskHistory !== undefined) setTaskHistory(data.taskHistory);
           if (data.events !== undefined) setEvents(data.events);
           if (data.projects !== undefined) setProjects(data.projects);
@@ -1415,6 +1457,7 @@ export default function App() {
 
         setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
         setDailyTasks([]);
+        setTimelineBlocks({});
         
         const daysPassed = Math.floor((today.getTime() - lastReset.getTime()) / (1000 * 3600 * 24));
         if (daysPassed > 0) {
@@ -1527,6 +1570,42 @@ export default function App() {
       />
     );
   }
+
+  const parsedEvents = useMemo(() => {
+    const events: any[] = [];
+    const keys = Object.keys(timelineBlocks).sort((a, b) => {
+       const [hA, mA] = a.split('-').map(Number);
+       const [hB, mB] = b.split('-').map(Number);
+       if (hA !== hB) return hA - hB;
+       return mA - mB;
+    });
+
+    let currentEvent: any = null;
+
+    for (const key of keys) {
+       const [h, m] = key.split('-').map(Number);
+       const block = timelineBlocks[key];
+       
+       const slotStart = h * 60 + (m - 10);
+       const slotEnd = h * 60 + m;
+
+       if (currentEvent && currentEvent.id === block.id && currentEvent.endMin === slotStart) {
+          currentEvent.endMin = slotEnd;
+       } else {
+          if (currentEvent) events.push(currentEvent);
+          currentEvent = {
+             id: block.id,
+             title: block.title,
+             difficulty: block.difficulty,
+             startMin: slotStart,
+             endMin: slotEnd,
+             color: dailyTasks.find(t => t.id === block.id)?.color || '#3b82f6'
+          };
+       }
+    }
+    if (currentEvent) events.push(currentEvent);
+    return events;
+  }, [timelineBlocks, dailyTasks]);
 
   return (
     <motion.div 
@@ -1712,6 +1791,7 @@ export default function App() {
             <div className="md:col-span-3 flex flex-wrap gap-3">
               {[
                 { icon: CheckSquare, label: "Tasks" },
+                { icon: Clock, label: "Timeline" },
                 { icon: Calendar, label: "Calendar" },
                 { icon: Target, label: "Goals" },
                 { icon: Activity, label: "Analysis" },
@@ -2001,6 +2081,264 @@ export default function App() {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* TIMELINE VIEW */}
+            {activeTab === "Timeline" && (
+              <div className="md:col-span-3 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                {/* Left Side: Tasks Allotted Today */}
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
+                    style={themeBackgrounds ? { 
+                      background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                      borderColor: 'var(--app-bg-accent-30)',
+                      boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                    } : undefined}>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold text-white tracking-tight">Today's Tasks</h2>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs text-white/50 mb-2">Drag these into the timeline slots.</p>
+                    </div>
+                    <div className="flex flex-col gap-3 overflow-y-auto pr-2 max-h-[60vh] scrollbar-thin scrollbar-thumb-white/10">
+                      {dailyTasks.map(task => (
+                        <div 
+                          key={task.id}
+                          className={`p-3 rounded-xl border border-white/10 bg-black/40 hover:border-white/30 transition-colors flex items-center justify-between gap-2`}
+                        >
+                          <div 
+                            className="flex items-center gap-2 cursor-grab active:cursor-grabbing flex-1 min-w-0"
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('taskId', task.id.toString());
+                            }}
+                          >
+                            <GripVertical size={14} className="text-white/30 shrink-0" />
+                            <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${task.difficulty === 'hard' ? 'bg-red-400' : task.difficulty === 'medium' ? 'bg-yellow-400' : 'bg-green-400'}`} />
+                            <span className="text-sm text-white font-medium truncate">{task.title}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select 
+                              value={task.timelineDuration || 10} 
+                              onChange={(e) => updateDailyTaskDuration(task.id, Number(e.target.value))}
+                              className="bg-black/60 text-[10px] text-white outline-none cursor-pointer border border-white/10 rounded px-1 min-w-[36px] py-0.5"
+                              title="Set Timeline Duration"
+                            >
+                              <option value={10} className="bg-black text-white">10m</option>
+                              <option value={20} className="bg-black text-white">20m</option>
+                              <option value={30} className="bg-black text-white">30m</option>
+                              <option value={40} className="bg-black text-white">40m</option>
+                              <option value={50} className="bg-black text-white">50m</option>
+                              <option value={60} className="bg-black text-white">1h</option>
+                              <option value={90} className="bg-black text-white">1.5h</option>
+                              <option value={120} className="bg-black text-white">2h</option>
+                              <option value={240} className="bg-black text-white">4h</option>
+                            </select>
+                            <input 
+                              type="color" 
+                              title="Set Timeline Color"
+                              value={task.color || '#3b82f6'}
+                              onChange={(e) => updateDailyTaskColor(task.id, e.target.value)}
+                              className="w-5 h-5 shrink-0 rounded cursor-pointer bg-transparent border-0 p-0"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {dailyTasks.length === 0 && (
+                        <div className="text-center py-10 opacity-50 text-xs italic">No tasks today.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Timeline Grid */}
+                <div className="lg:col-span-3 flex flex-col gap-6">
+                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-x-auto transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50 shadow-sm'}`}
+                    style={themeBackgrounds ? { 
+                      background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
+                      borderColor: 'var(--app-bg-accent-30)',
+                      boxShadow: `0 0 15px var(--app-bg-accent-20)`
+                    } : undefined}>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-2">
+                      <div className="flex items-center gap-3">
+                         <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                           <Clock className="text-primary" size={24} />
+                           Timeline Tracker
+                         </h2>
+                         {(() => {
+                           const scheduledMin = Object.keys(timelineBlocks).length * 10;
+                           const hrs = Math.floor(scheduledMin / 60);
+                           const mins = scheduledMin % 60;
+                           const showStats = scheduledMin > 0;
+                           return showStats ? (
+                             <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-md text-xs font-bold tracking-wide">
+                               <Activity size={12} />
+                               {hrs > 0 ? `${hrs}h ` : ''}{mins > 0 ? `${mins}m ` : ''}SCHEDULED
+                             </span>
+                           ) : null;
+                         })()}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                         {(() => {
+                           const scheduledMin = Object.keys(timelineBlocks).length * 10;
+                           const hrs = Math.floor(scheduledMin / 60);
+                           const mins = scheduledMin % 60;
+                           const showStats = scheduledMin > 0;
+                           return showStats ? (
+                             <span className="sm:hidden flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-md text-xs font-bold tracking-wide">
+                               <Activity size={12} />
+                               {hrs > 0 ? `${hrs}h ` : ''}{mins > 0 ? `${mins}m ` : ''}SCHED.
+                             </span>
+                           ) : null;
+                         })()}
+                         <button 
+                           onClick={() => {
+                             const el = document.getElementById(`hr-[${new Date().getHours()}]`);
+                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                           }}
+                           className="px-3 py-1 text-xs rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+                         >
+                           Locate Now
+                         </button>
+                         <button 
+                           onClick={() => setTimelineBlocks({})}
+                           className="px-3 py-1 text-xs rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+                         >
+                           Clear Timeline
+                         </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-y-auto max-h-[80vh] pb-12 custom-scrollbar w-full relative">
+                      <div className="w-full min-w-[400px] border border-white/10 rounded-lg bg-black/20 relative" style={{ height: `${24 * 80}px` }}>
+                         {/* Background Grid Lines and Labels */}
+                         {Array.from({ length: 24 }).map((_, h) => (
+                           <div id={`hr-[${h}]`} key={`grid-h-${h}`} className="absolute w-full flex pointer-events-none" style={{ top: `${h * 80}px`, height: '80px' }}>
+                             {/* Time Label */}
+                             <div className="w-[60px] sm:w-[80px] shrink-0 text-right pr-3 sm:pr-4 py-2 text-[10px] sm:text-xs font-mono text-white/40 border-r border-white/5 bg-black/20 select-none">
+                               {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h-12} PM`}
+                             </div>
+                             {/* Hour divider line */}
+                             <div className="flex-1 border-t border-white/[0.05] relative">
+                               {/* Half-hour marker */}
+                               <div className="absolute top-[40px] w-full border-t border-white/[0.02] border-dashed" />
+                             </div>
+                           </div>
+                         ))}
+
+                         {/* The Drop Zones */}
+                         <div className="absolute top-0 bottom-0 left-[60px] sm:left-[80px] right-0 flex flex-col z-10">
+                            {Array.from({ length: 24 }).map((_, h) => (
+                               <div key={`drop-h-${h}`} className="flex flex-col flex-1" style={{ height: '80px' }}>
+                                  {['10', '20', '30', '40', '50', '60'].map(m => (
+                                     <div 
+                                        key={`drop-${h}-${m}`} 
+                                        className="flex-1 hover:bg-white/[0.05] border-b border-transparent transition-colors z-20"
+                                        onDragOver={(e) => {
+                                           e.preventDefault();
+                                           e.currentTarget.classList.add('bg-white/10');
+                                        }}
+                                        onDragLeave={(e) => {
+                                           e.currentTarget.classList.remove('bg-white/10');
+                                        }}
+                                        onDrop={(e) => {
+                                           e.preventDefault();
+                                           e.currentTarget.classList.remove('bg-white/10');
+                                           const taskIdStr = e.dataTransfer.getData('taskId');
+                                           if (!taskIdStr) return;
+                                           const taskId = parseInt(taskIdStr);
+                                           const task = dailyTasks.find(t => t.id === taskId);
+                                           if (task) {
+                                              setTimelineBlocks(prev => {
+                                                const next = { ...prev };
+                                                const duration = task.timelineDuration || 10;
+                                                const blocksCount = Math.max(1, duration / 10);
+                                                
+                                                let currentH = h;
+                                                let currentMIndex = ['10', '20', '30', '40', '50', '60'].indexOf(m);
+                                                
+                                                for (let i = 0; i < blocksCount; i++) {
+                                                   if (currentH > 24) break;
+                                                   
+                                                   const mStr = ['10', '20', '30', '40', '50', '60'][currentMIndex];
+                                                   const nextKey = `${currentH}-${mStr}`;
+                                                   next[nextKey] = { id: task.id, title: task.title, difficulty: task.difficulty };
+                                                   
+                                                   currentMIndex++;
+                                                   if (currentMIndex > 5) {
+                                                      currentMIndex = 0;
+                                                      currentH++;
+                                                   }
+                                                }
+                                                return next;
+                                              });
+                                           }
+                                        }}
+                                     />
+                                  ))}
+                               </div>
+                            ))}
+                         </div>
+
+                         {/* Overlay Events */}
+                         <div className="absolute top-0 bottom-0 left-[60px] sm:left-[80px] right-0 pointer-events-none z-30">
+                            {parsedEvents.map((event, i) => {
+                               const top = (event.startMin / (24 * 60)) * 100;
+                               const height = ((event.endMin - event.startMin) / (24 * 60)) * 100;
+                               const isPast = event.endMin < (new Date().getHours() * 60 + new Date().getMinutes());
+                               return (
+                                  <div 
+                                    key={`event-${event.id}-${event.startMin}-${i}`} 
+                                    className={`absolute left-2 right-4 sm:left-4 sm:right-6 rounded-md overflow-hidden shadow-sm backdrop-blur-sm pointer-events-auto cursor-pointer group flex flex-col pt-1.5 px-3 transition-opacity border border-white/20 hover:brightness-110`}
+                                    style={{ 
+                                       top: `${top}%`, 
+                                       height: `${height}%`,
+                                       backgroundColor: `${event.color}BF`, // 75% opacity
+                                       opacity: isPast ? 0.6 : 1
+                                    }}
+                                  >
+                                    <div className="flex items-start gap-2 w-full">
+                                      <div className={`w-2 h-2 mt-1.5 shrink-0 rounded-full ${event.difficulty === 'hard' ? 'bg-red-400' : event.difficulty === 'medium' ? 'bg-yellow-400' : 'bg-green-400'} shadow-sm`} />
+                                      <span className="truncate w-full block text-left font-bold text-sm text-white drop-shadow-md tracking-wide">{event.title}</span>
+                                    </div>
+                                    <div 
+                                      className="absolute top-2 right-2 bg-black/40 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] hover:bg-red-500/80 hover:text-white"
+                                      title="Click to remove"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTimelineBlocks(prev => {
+                                          const next = { ...prev };
+                                          const idToDelete = event.id;
+                                          Object.keys(next).forEach(k => {
+                                             if (next[k].id === idToDelete) {
+                                                delete next[k];
+                                             }
+                                          });
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <X size={14} className="text-white/80 drop-shadow-md" />
+                                    </div>
+                                    {event.endMin - event.startMin > 15 && (
+                                        <div className="text-xs text-white/80 font-mono mt-0.5 ml-4 drop-shadow-md">
+                                           {Math.round(event.endMin - event.startMin)} min
+                                        </div>
+                                    )}
+                                  </div>
+                               )
+                            })}
+                         </div>
+
+                         <CurrentTimeLine />
+
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* CALENDAR VIEW */}
