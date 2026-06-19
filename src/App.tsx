@@ -207,139 +207,7 @@ const QuoteOfTheDay = () => {
   );
 };
 
-const HeptaRadar = ({ data, color = "#ff6a00", strokeColor = "#ff8833" }: { data: { day: string; value: number }[], color?: string, strokeColor?: string }) => {
-  const size = 500;
-  const center = size / 2;
-  const maxRadius = (size / 2) * 0.7; // Reduced to fit labels safely
 
-  const getCoordinatesForAngle = (angle: number, radius: number) => {
-    return {
-      x: center + radius * Math.cos(angle - Math.PI / 2),
-      y: center + radius * Math.sin(angle - Math.PI / 2)
-    };
-  };
-
-  const getAngle = (index: number) => (index * 2 * Math.PI) / 7;
-  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1];
-
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center relative z-10 select-none font-sans">
-      <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} className="max-w-[100%] max-h-[100%] overflow-visible">
-        {/* Background Grid */}
-        {gridLevels.reverse().map((level) => {
-          const points = Array.from({ length: 7 }).map((_, j) => {
-            const { x, y } = getCoordinatesForAngle(getAngle(j), maxRadius * level);
-            return `${x},${y}`;
-          }).join(' ');
-          
-          return (
-            <polygon 
-              key={`grid-${level}`}
-              points={points}
-              fill={level % 0.4 === 0 ? "rgba(255,255,255,0.02)" : "none"}
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth={1}
-            />
-          );
-        })}
-
-        {/* Axes */}
-        {Array.from({ length: 7 }).map((_, j) => {
-          const { x, y } = getCoordinatesForAngle(getAngle(j), maxRadius);
-          return (
-            <line 
-              key={`axis-${j}`}
-              x1={center} y1={center} x2={x} y2={y}
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-            />
-          );
-        })}
-
-        {/* Filled Data Sectors */}
-        {data.map((d, i) => {
-          const valuePct = Math.min(Math.max(d.value, 1), 100) / 100; // ensures sliver is visible
-          const r = maxRadius * valuePct;
-          const a1 = getAngle(i);
-          const a2 = getAngle(i + 1);
-          
-          const p1 = getCoordinatesForAngle(a1, r);
-          const p2 = getCoordinatesForAngle(a2, r);
-
-          return (
-             <g key={`sector-${i}`} className="group relative">
-               <path 
-                 d={`M ${center} ${center} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
-                 fill={color}
-                 fillOpacity={0.4}
-                 stroke={strokeColor}
-                 strokeWidth={1.5}
-                 strokeLinejoin="round"
-                 className="transition-all duration-300 group-hover:fill-opacity-70 group-hover:stroke-[2px]"
-               />
-               <path 
-                 d={`M ${center} ${center} L ${getCoordinatesForAngle(a1, maxRadius).x} ${getCoordinatesForAngle(a1, maxRadius).y} L ${getCoordinatesForAngle(a2, maxRadius).x} ${getCoordinatesForAngle(a2, maxRadius).y} Z`}
-                 fill="transparent"
-                 className="cursor-crosshair"
-               >
-                 <title>{`${d.day}: ${Math.round(d.value)}% completed`}</title>
-               </path>
-             </g>
-          );
-        })}
-
-        {/* Labels for percentage block fill */}
-        {data.map((d, i) => {
-           const valuePct = Math.min(Math.max(d.value, 0), 100) / 100;
-           if (valuePct === 0) return null;
-
-           const rDecal = (maxRadius * valuePct) - 15; 
-           const displayR = rDecal < 15 ? 15 : rDecal; 
-           
-           const midAngle = (getAngle(i) + getAngle(i + 1)) / 2;
-           const { x, y } = getCoordinatesForAngle(midAngle, displayR);
-           
-           return (
-             <text 
-               key={`pct-${i}`}
-               x={x} y={y} 
-               fill="#ffffff" 
-               fontSize={10} 
-               fontWeight={700}
-               textAnchor="middle" 
-               alignmentBaseline="middle"
-               className="pointer-events-none opacity-50"
-             >
-               {Math.round(d.value)}%
-             </text>
-           )
-        })}
-
-        {/* Outer label texts for Days */}
-        {data.map((d, i) => {
-          const midAngle = (getAngle(i) + getAngle(i + 1)) / 2;
-          const { x, y } = getCoordinatesForAngle(midAngle, maxRadius + 30);
-          return (
-            <text 
-              key={`label-${i}`}
-              x={x} y={y} 
-              fill={i === 6 ? "#ff6a00" : "rgba(255,255,255,0.6)"} 
-              fontSize={15} 
-              fontWeight={i === 6 ? 800 : 600} 
-              letterSpacing={1}
-              textAnchor="middle" 
-              alignmentBaseline="middle"
-              className="pointer-events-none drop-shadow-sm"
-            >
-              {d.day}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
-  );
-};
 
 const playCyberSound = (type: 'hover' | 'click' | 'success' | 'transition' | 'boot') => {
   try {
@@ -1132,23 +1000,8 @@ export default function App() {
 
 
 
-  // Weekly Must State & Lockdown Logic
-  const [isWeekActive, setIsWeekActive] = useState(() => {
-    return localStorage.getItem('app_isWeekActive') === 'true';
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [weeklyMusts, setWeeklyMusts] = useState<{id: number, title: string, time: string, done: boolean, difficulty?: TaskDifficulty}[]>(() => {
-    const saved = localStorage.getItem('app_weeklyMusts');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [tempTasks, setTempTasks] = useState<{id: number, title: string, time: string, done: boolean, difficulty?: TaskDifficulty}[]>([]);
-  const [tempTaskTitle, setTempTaskTitle] = useState("");
-  const [tempTaskDifficulty, setTempTaskDifficulty] = useState<TaskDifficulty>('medium');
   const [lastResetDate, setLastResetDate] = useState(() => {
     return localStorage.getItem('app_lastResetDate') || new Date().toDateString();
-  });
-  const [weekStartDate, setWeekStartDate] = useState<string | null>(() => {
-    return localStorage.getItem('app_weekStartDate') || null;
   });
 
   useEffect(() => {
@@ -1160,37 +1013,20 @@ export default function App() {
       intensity = Math.ceil((current / total) * 4); // 1 to 4
     }
     const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
-    const weeklyPercentage = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
 
     const today = new Date();
     const todayStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
     setTaskHistory(prev => {
-      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage && prev[todayStr]?.weeklyPercentage === weeklyPercentage && JSON.stringify(prev[todayStr]?.tasks) === JSON.stringify(dailyTasks)) return prev;
+      if (prev[todayStr]?.intensity === intensity && prev[todayStr]?.percentage === percentage && JSON.stringify(prev[todayStr]?.tasks) === JSON.stringify(dailyTasks)) return prev;
       return {
         ...prev,
-        [todayStr]: { intensity, percentage, tasks: dailyTasks, weeklyPercentage }
+        [todayStr]: { intensity, percentage, tasks: dailyTasks, weeklyPercentage: 0 }
       };
     });
-  }, [dailyTasks, weeklyMusts]);
-
-  useEffect(() => {
-    localStorage.setItem('app_isWeekActive', isWeekActive.toString());
-  }, [isWeekActive]);
-
-  useEffect(() => {
-    localStorage.setItem('app_weeklyMusts', JSON.stringify(weeklyMusts));
-  }, [weeklyMusts]);
-
-  useEffect(() => {
-    if (weekStartDate) {
-      localStorage.setItem('app_weekStartDate', weekStartDate);
-    } else {
-      localStorage.removeItem('app_weekStartDate');
-    }
-  }, [weekStartDate]);
+  }, [dailyTasks]);
 
   // Analysis State
-  const [analysisView, setAnalysisView] = useState<'graph' | 'block' | 'radar'>('radar');
+  const [analysisView, setAnalysisView] = useState<'graph' | 'block'>('graph');
 
   // Life Protocol State
   const [lifeProtocol, setLifeProtocol] = useState(() => {
@@ -1324,9 +1160,6 @@ export default function App() {
       lifeProtocol,
       lifeProtocolLevels,
       lastResetDate,
-      isWeekActive,
-      weeklyMusts,
-      weekStartDate,
       goals,
       themeBackgrounds
     };
@@ -1369,9 +1202,6 @@ export default function App() {
           if (data.lifeProtocol !== undefined) setLifeProtocol(data.lifeProtocol);
           if (data.lifeProtocolLevels !== undefined) setLifeProtocolLevels(data.lifeProtocolLevels);
           if (data.lastResetDate !== undefined) setLastResetDate(data.lastResetDate);
-          if (data.isWeekActive !== undefined) setIsWeekActive(data.isWeekActive);
-          if (data.weeklyMusts !== undefined) setWeeklyMusts(data.weeklyMusts);
-          if (data.weekStartDate !== undefined) setWeekStartDate(data.weekStartDate);
           if (data.goals !== undefined) setGoals(data.goals);
           if (data.themeBackgrounds !== undefined) setThemeBackgrounds(data.themeBackgrounds);
         } catch (err) {
@@ -1390,26 +1220,6 @@ export default function App() {
     return 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]';
   };
 
-  const toggleMust = (id: number) => {
-    if (!isWeekActive) return;
-    setWeeklyMusts(prev => prev.map(m => m.id === id ? { ...m, done: !m.done } : m));
-  };
-
-  const addTempTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tempTaskTitle.trim()) return;
-    const newTask = {
-      id: Date.now(),
-      title: tempTaskTitle,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      done: false,
-      difficulty: tempTaskDifficulty
-    };
-    setTempTasks(prev => [...prev, newTask]);
-    setTempTaskTitle("");
-    setTempTaskDifficulty('medium');
-  };
-
   const handleToggleLifeProtocol = (key: string) => {
     const k = key as keyof typeof lifeProtocol;
     const newValue = !lifeProtocol[k];
@@ -1424,15 +1234,7 @@ export default function App() {
     setLifeProtocol(prev => ({ ...prev, [k]: newValue }));
   };
 
-  const commitWeek = () => {
-    if (tempTasks.length === 0) return;
-    setWeeklyMusts(tempTasks);
-    setIsWeekActive(true);
-    setWeekStartDate(new Date().toDateString());
-    setIsModalOpen(false);
-  };
-
-  // Auto-reset logic for midnight and weekly rotation
+  // Auto-reset logic for midnight
   useEffect(() => {
     const checkResets = () => {
       const today = new Date();
@@ -1455,7 +1257,6 @@ export default function App() {
           }
         }));
 
-        setWeeklyMusts(prev => prev.map(m => ({ ...m, done: false })));
         setDailyTasks([]);
         setTimelineBlocks({});
         
@@ -1482,19 +1283,6 @@ export default function App() {
         });
         setLastResetDate(todayStr);
       }
-
-      // 2. 7-Day Expiry (Resets week lock)
-      if (weekStartDate) {
-        const start = new Date(weekStartDate).getTime();
-        const now = new Date().getTime();
-        const daysPassedCheck = (now - start) / (1000 * 3600 * 24);
-        if (daysPassedCheck >= 7) {
-          setIsWeekActive(false);
-          setWeeklyMusts([]);
-          setTempTasks([]);
-          setWeekStartDate(null);
-        }
-      }
     };
 
     // Run the check once immediately so stale data is wiped instantly
@@ -1504,10 +1292,9 @@ export default function App() {
     const interval = setInterval(checkResets, 1000);
 
     return () => clearInterval(interval);
-  }, [lastResetDate, weekStartDate, lifeProtocol]);
+  }, [lastResetDate, lifeProtocol]);
 
   const todayDailyPct = calculateTotalDailyPoints() === 0 ? 0 : Math.round((calculateDailyPoints() / calculateTotalDailyPoints()) * 100);
-  const todayWeeklyPct = weeklyMusts.length === 0 ? 0 : Math.round((weeklyMusts.filter(m => m.done).length / weeklyMusts.length) * 100);
 
   // Generate 7-day historical data
   const generate7DayData = () => {
@@ -1520,16 +1307,13 @@ export default function App() {
       const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }); 
       
       let dailyPct = 0;
-      let weeklyPct = 0;
       
       if (i === 0) {
         dailyPct = todayDailyPct;
-        weeklyPct = todayWeeklyPct;
       } else {
         const historyObj = taskHistory[dateStr];
         if (historyObj) {
           dailyPct = historyObj.percentage !== undefined ? historyObj.percentage : (historyObj.intensity * 25);
-          weeklyPct = historyObj.weeklyPercentage !== undefined ? historyObj.weeklyPercentage : 0;
         }
       }
 
@@ -1537,8 +1321,7 @@ export default function App() {
         day: i === 0 ? 'Today' : dayName,
         subject: dayName,
         A: dailyPct || 1, // for radar
-        daily: dailyPct, // for bar chart
-        weekly: weeklyPct
+        daily: dailyPct // for bar chart
       });
     }
     return data;
@@ -1546,30 +1329,8 @@ export default function App() {
 
   const analysisData = generate7DayData();
   const dailyVectorData = analysisData.map(d => ({ day: d.day, value: d.daily }));
-  const weeklyVectorData = analysisData.map(d => ({ day: d.day, value: d.weekly }));
 
   const avgDailyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.daily, 0) / analysisData.length) || 0;
-  const avgWeeklyPct = Math.round(analysisData.reduce((acc, curr) => acc + curr.weekly, 0) / analysisData.length) || 0;
-
-  if (!hasOnboarded) {
-    return (
-      <OnboardingScreen 
-        operativeName={operativeName}
-        setOperativeName={setOperativeName}
-        customAvatar={customAvatar}
-        setCustomAvatar={setCustomAvatar}
-        avatarImages={avatarImages}
-        handleImageUpload={handleImageUpload}
-        notifications={notifications}
-        setNotifications={setNotifications}
-        onFinish={() => {
-          if (!operativeName.trim()) setOperativeName("ALPHA-GUEST");
-          if (!customAvatar && avatarImages.length > 0) setCustomAvatar(avatarImages[0]);
-          setHasOnboarded(true);
-        }}
-      />
-    );
-  }
 
   const parsedEvents = useMemo(() => {
     const events: any[] = [];
@@ -1606,6 +1367,26 @@ export default function App() {
     if (currentEvent) events.push(currentEvent);
     return events;
   }, [timelineBlocks, dailyTasks]);
+
+  if (!hasOnboarded) {
+    return (
+      <OnboardingScreen 
+        operativeName={operativeName}
+        setOperativeName={setOperativeName}
+        customAvatar={customAvatar}
+        setCustomAvatar={setCustomAvatar}
+        avatarImages={avatarImages}
+        handleImageUpload={handleImageUpload}
+        notifications={notifications}
+        setNotifications={setNotifications}
+        onFinish={() => {
+          if (!operativeName.trim()) setOperativeName("ALPHA-GUEST");
+          if (!customAvatar && avatarImages.length > 0) setCustomAvatar(avatarImages[0]);
+          setHasOnboarded(true);
+        }}
+      />
+    );
+  }
 
   return (
     <motion.div 
@@ -1821,13 +1602,12 @@ export default function App() {
             </div>
 
             {/* --- TAB VIEWS --- */}
-            
-            {/* TASKS VIEW (Default) */}
+                     {/* TASKS VIEW (Default) */}
             {activeTab === "Tasks" && (
               <>
                 {/* Daily Tasks */}
                 <div 
-                  className={`md:col-span-2 card p-6 border shadow-lg flex flex-col gap-6 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
+                  className={`md:col-span-3 card p-6 border shadow-lg flex flex-col gap-6 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
                   style={themeBackgrounds ? { 
                     background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
                     borderColor: 'var(--app-bg-accent-30)',
@@ -1869,7 +1649,7 @@ export default function App() {
                         ))}
                       </div>
                     </form>
-
+ 
                     {/* Filter and Progress */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 gap-4 sm:gap-0">
                       <div className="flex gap-2 w-full sm:w-auto">
@@ -1877,7 +1657,7 @@ export default function App() {
                          <button onClick={() => setTaskFilter('active')} className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${taskFilter === 'active' ? 'text-blue-400 border-blue-400/30 bg-blue-400/10' : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'}`}>Active</button>
                          <button onClick={() => setTaskFilter('completed')} className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${taskFilter === 'completed' ? 'text-purple-400 border-purple-400/30 bg-purple-400/10' : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'}`}>Completed</button>
                       </div>
-
+ 
                       <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
                          <span className="text-[10px] text-muted-foreground flex items-center gap-2">
                             Progress 
@@ -1890,135 +1670,54 @@ export default function App() {
                                     initial={{ width: 0 }}
                                     animate={{ width: `${calculateTotalDailyPoints() === 0 ? 0 : (calculateDailyPoints() / calculateTotalDailyPoints()) * 100}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
-                                />
-                            </div>
-                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Task List */}
-                  <div className="flex-1 overflow-y-auto z-10 flex flex-col gap-2 rounded-xl bg-[#111111]/50 border border-white/5 p-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
-                    {filteredDailyTasks.length === 0 ? (
-                       <div className="flex flex-col items-center justify-center flex-1 h-full text-center py-12">
-                          <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4">
-                             <LayoutGrid size={20} className="text-muted-foreground/60" />
-                          </div>
-                          <h3 className="text-sm font-semibold text-white mb-1">No tasks found</h3>
-                          <p className="text-xs text-muted-foreground/60">Start by adding a new dimension to your day.</p>
-                       </div>
-                    ) : (
-                      filteredDailyTasks.map((t) => (
-                        <div 
-                          key={t.id} 
-                          onClick={() => toggleDailyTask(t.id)}
-                          className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.done ? 'bg-primary/10 border-primary/30 opacity-40 shadow-none' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
-                        >
-                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.done ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-primary/50'}`}>
-                            {t.done && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckSquare size={14} className="text-white" /></motion.div>}
-                          </div>
-                          <div className="flex flex-col flex-1">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary/70 line-through decoration-primary/50' : 'text-white font-medium'}`}>{t.title}</span>
-                                <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
-                                  {t.difficulty}
-                                </span>
+                                  />
                               </div>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); deleteDailyTask(t.id); }}
-                                className="text-muted-foreground/60 hover:text-red-400 transition-all p-1.5"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
+                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Tasks List (Weekly Must) */}
-                <div 
-                  className={`card p-6 border shadow-lg flex flex-col h-full backdrop-blur-sm relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-black/[0.55] border-border/50 shadow-sm'}`}
-                  style={themeBackgrounds ? { 
-                    background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                    borderColor: 'var(--app-bg-accent-30)',
-                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                  } : {}}
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-lg font-bold flex items-center gap-2">
-                        <Zap size={18} className="text-primary" />
-                        Weekly Must
-                      </h2>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Current Sync: Phase 01</p>
-                    </div>
-                    {isWeekActive && weekStartDate && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded font-bold">
-                          WEEK LOCKED
-                        </span>
-                        <button 
-                          onClick={() => { setTempTasks([...weeklyMusts]); setIsModalOpen(true); }}
-                          className="text-[10px] bg-white/5 hover:bg-white/10 text-white border border-white/10 px-2.5 py-1 rounded font-bold hover:border-primary/50 transition-all uppercase tracking-wider"
-                        >
-                          Modify
-                        </button>
                       </div>
-                    )}
-                  </div>
-
-                  {!isWeekActive ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
-                      <button 
-                        onClick={() => { setTempTasks([]); setIsModalOpen(true); }}
-                        className="px-8 py-3 bg-primary text-white rounded-full text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-                      >
-                        <Zap size={16} />
-                        START WEEK
-                      </button>
-                      <p className="text-xs text-muted-foreground mt-4 max-w-[220px]">Program your 7-day directives. Once initiated, routine is locked until cycle expires.</p>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-3 flex-1 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
-                        {[...weeklyMusts]
-                          .sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1))
-                          .map((t) => (
+ 
+                    {/* Task List */}
+                    <div className="flex-1 overflow-y-auto z-10 flex flex-col gap-2 rounded-xl bg-[#111111]/50 border border-white/5 p-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
+                      {filteredDailyTasks.length === 0 ? (
+                         <div className="flex flex-col items-center justify-center flex-1 h-full text-center py-12">
+                            <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4">
+                               <img src="/Profile/Logo_Life_Planner.png" alt="No tasks" className="w-6 h-6 object-contain" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-white mb-1">No tasks found</h3>
+                            <p className="text-xs text-muted-foreground/60">Start by adding a new dimension to your day.</p>
+                         </div>
+                      ) : (
+                        filteredDailyTasks.map((t) => (
                           <div 
                             key={t.id} 
-                            onClick={() => toggleMust(t.id)}
-                            className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.done ? 'bg-primary/15 border-primary/50 shadow-none scale-100 opacity-40' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
+                            onClick={() => toggleDailyTask(t.id)}
+                            className={`group flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${t.done ? 'bg-primary/10 border-primary/30 opacity-40 shadow-none' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
                           >
                             <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${t.done ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-primary/50'}`}>
                               {t.done && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckSquare size={14} className="text-white" /></motion.div>}
                             </div>
                             <div className="flex flex-col flex-1">
-                              <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary font-bold drop-shadow-[0_0_5px_rgba(255,106,0,0.3)]' : 'text-foreground font-medium'}`}>{t.title}</span>
-                              <div className="flex items-center gap-3">
-                                <span className={`text-[10px] flex items-center gap-1 transition-all ${t.done ? 'text-primary/80' : 'text-muted-foreground'}`}><Clock size={10} /> {t.time}</span>
-                                {t.difficulty && (
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm tracking-tight transition-all ${t.done ? 'text-primary/70 line-through decoration-primary/50' : 'text-white font-medium'}`}>{t.title}</span>
                                   <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
                                     {t.difficulty}
                                   </span>
-                                )}
-                                <span className="text-[10px] text-primary/60 font-mono tracking-tighter">PROTO-LOG: {t.id.toString().slice(-4)}</span>
+                                </div>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); deleteDailyTask(t.id); }}
+                                  className="text-muted-foreground/60 hover:text-red-400 transition-all p-1.5"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      <div className="mt-6 pt-4 border-t border-white/5 text-center">
-                        <p className="text-[10px] text-muted-foreground tracking-widest uppercase font-mono">
-                          {isWeekActive && weekStartDate ? <WeeklyCountdown startDate={weekStartDate} /> : 'Directives reset daily at 00:00'}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
 
                 {/* Life Protocol Block (Tasks Bottom) */}
                 <div 
@@ -2754,59 +2453,11 @@ export default function App() {
                 <div className="flex justify-start gap-2 border rounded-xl p-1 self-start relative overflow-hidden group bg-cyan-500/10 border-cyan-500/20">
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-cyan-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                   <button onClick={() => setAnalysisView('graph')} className={`relative z-10 hidden sm:inline-block px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'graph' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Graphs</button>
-                  <button onClick={() => setAnalysisView('radar')} className={`relative z-10 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'radar' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Radar</button>
                   <button onClick={() => setAnalysisView('block')} className={`relative z-10 px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${analysisView === 'block' ? 'bg-cyan-500/20 text-cyan-200' : 'text-muted-foreground hover:text-cyan-200 hover:bg-cyan-500/10'}`}>Block Craft</button>
                 </div>
 
-                {analysisView === 'radar' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
-                    {/* Daily Radar Performance Graph */}
-                    <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
-                    >
-                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
-                         <h2 className="text-xl font-bold flex items-center gap-2">
-                           <Activity size={20} className="text-primary" />
-                           Daily Performance Vector
-                         </h2>
-                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">Daily-Hepta</span>
-                       </div>
-                       <div className="flex-1 w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
-                         <HeptaRadar data={dailyVectorData} />
-                       </div>
-                    </div>
-
-                    {/* Weekly Must Radar Performance Graph */}
-                    <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden h-[500px] sm:h-[600px] flex flex-col transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
-                    >
-                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10 w-full shrink-0">
-                         <h2 className="text-xl font-bold flex items-center gap-2">
-                           <Target size={20} className="text-blue-400" />
-                           Weekly Must Vector
-                         </h2>
-                         <span className="text-[10px] bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30 font-mono tracking-widest uppercase">Weekly-Hepta</span>
-                       </div>
-                       <div className="flex-1 w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
-                         <HeptaRadar data={weeklyVectorData} color="#60a5fa" strokeColor="#93c5fd" />
-                       </div>
-                    </div>
-                  </div>
-                )}
-
                 {analysisView === 'graph' && (
-                  <div className="hidden sm:grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+                  <div className="hidden sm:block w-full max-w-3xl mx-auto">
                     {/* Daily Task Performance Graph */}
                     <div 
                       className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
@@ -2846,51 +2497,11 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Weekly Must Performance Graph */}
-                    <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                          <Zap size={20} className="text-blue-500" />
-                          Weekly Must Performance
-                        </h2>
-                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
-                      </div>
-                      <div className="h-[250px] sm:h-[300px] w-full min-w-0 relative z-10 overflow-hidden pb-4 md:pb-0">
-                        <div className="w-full min-w-0 h-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="colorWeekly" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]} tickFormatter={(v) => `${v}%`} stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
-                            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                            <RechartsTooltip 
-                              contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
-                              itemStyle={{ color: '#fff' }}
-                            />
-                              <Area type="monotone" dataKey="weekly" name="Weekly Must Intact %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWeekly)" activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
                 
                 {analysisView === 'block' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="w-full max-w-3xl mx-auto">
                     {/* Daily Block Craft */}
                     <div 
                       className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
@@ -2920,40 +2531,6 @@ export default function App() {
                              </div>
                              <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
                              <span className="text-[10px] font-bold text-white">{data.daily}%</span>
-                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Weekly Must Block Craft */}
-                    <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
-                        <h2 className="text-xl font-bold flex items-center gap-2">
-                          <Zap size={20} className="text-blue-500" />
-                          Weekly Block Craft
-                        </h2>
-                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30 font-mono tracking-widest uppercase">{avgWeeklyPct}% Avg</span>
-                      </div>
-                      <div className="flex w-full min-w-0 md:flex-wrap gap-1 sm:gap-4 relative z-10 items-end justify-between sm:justify-center h-[200px] pb-4 md:pb-0">
-                        {analysisData.map((data, idx) => (
-                           <div key={`weekly-${idx}`} className="flex flex-col items-center gap-2 flex-1 sm:flex-none">
-                             <div className="w-full max-w-[32px] sm:max-w-none sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
-                               <motion.div 
-                                 initial={{ height: 0 }}
-                                 animate={{ height: `${data.weekly}%` }}
-                                 transition={{ duration: 0.8, delay: idx * 0.1, ease: 'easeOut' }}
-                                 className="w-full bg-gradient-to-t from-blue-500/80 to-blue-500/40 rounded-t-sm"
-                               />
-                             </div>
-                             <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
-                             <span className="text-[10px] font-bold text-white">{data.weekly}%</span>
                            </div>
                         ))}
                       </div>
@@ -3343,98 +2920,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Modal for Weekly Must Setup */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-[#050505] border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[80vh]"
-          >
-            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2 text-white">
-              <Zap className="text-primary" /> Start Weekly Cycle
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">Program instructions for the next 7 days. Once committed, tasks cannot be added or reset until the week expires.</p>
-            
-            <div className="flex-1 overflow-y-auto pr-2 mb-6 scrollbar-thin scrollbar-thumb-white/10 flex flex-col gap-2">
-              {tempTasks.length === 0 ? (
-                <div className="py-8 text-center border border-dashed border-white/10 rounded-xl">
-                  <p className="text-sm text-muted-foreground">No tasks queued.</p>
-                </div>
-              ) : (
-                tempTasks.map((t, idx) => (
-                  <div key={t.id} className="text-sm p-3 bg-white/5 rounded-xl border border-white/10 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                       <span>{idx + 1}. {t.title}</span>
-                       {t.difficulty && (
-                         <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${getDifficultyColor(t.difficulty)}`}>
-                           {t.difficulty}
-                         </span>
-                       )}
-                    </div>
-                    <button 
-                      onClick={() => setTempTasks(prev => prev.filter(task => task.id !== t.id))}
-                      className="text-red-400 hover:text-red-300 text-xs uppercase tracking-wide"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
 
-            <form onSubmit={addTempTask} className="flex flex-col gap-3 mb-6">
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={tempTaskTitle}
-                  onChange={(e) => setTempTaskTitle(e.target.value)}
-                  placeholder="Enter mandatory daily task..."
-                  className="bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:border-primary/50 transition-colors text-white"
-                />
-                <button 
-                  type="submit"
-                  className="bg-primary hover:bg-primary/80 text-white rounded-lg px-2 py-1 flex items-center justify-center transition-all"
-                >
-                  <Check size={16} />
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                {(['easy', 'medium', 'hard'] as TaskDifficulty[]).map(diff => (
-                   <button
-                     key={diff}
-                     type="button"
-                     onClick={() => setTempTaskDifficulty(diff)}
-                     className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                       tempTaskDifficulty === diff 
-                         ? getDifficultyColor(diff) 
-                         : 'border-white/10 text-muted-foreground bg-transparent hover:bg-white/5'
-                     }`}
-                   >
-                     {diff}
-                   </button>
-                ))}
-              </div>
-            </form>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2.5 rounded-full text-sm font-medium hover:bg-white/5 transition-colors text-white"
-              >
-                Abort
-              </button>
-              <button 
-                onClick={commitWeek}
-                disabled={tempTasks.length === 0}
-                className="px-6 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary text-white rounded-full text-sm font-bold transition-all shadow-lg shadow-primary/20"
-              >
-                Commit Protocol
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
       {/* View Events Modal */}
       {isViewEventsModalOpen && (
         <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4" onClick={() => setIsViewEventsModalOpen(false)}>
