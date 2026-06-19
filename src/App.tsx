@@ -2,6 +2,7 @@ import { Bell, Search, LayoutDashboard, Calendar, Settings, Activity, Target, Za
 import JSZip from 'jszip';
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import Snowfall from 'react-snowfall';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import quotesData from './quotes.json';
 
@@ -184,21 +185,21 @@ const QuoteOfTheDay = () => {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 md:p-6 relative overflow-hidden group shadow-lg"
+      className="rounded-xl p-4 md:p-6 relative overflow-hidden group shadow-lg" style={{ backgroundColor: 'var(--app-bg-accent-10)', borderColor: 'var(--app-bg-accent-20)', borderWidth: '1px' }}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
-      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600" />
+      <div className="absolute inset-0 opacity-50 group-hover:opacity-100 transition-opacity duration-700" style={{ backgroundImage: 'linear-gradient(to right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)' }} />
+      <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-80" />
       
       <div className="relative flex items-start gap-4">
-        <div className="bg-orange-500/20 border border-orange-500/30 p-2 rounded-xl mt-1 shadow-[0_0_15px_rgba(249,115,22,0.2)] flex-shrink-0">
-          <Quote size={20} className="text-orange-500 fill-orange-500/20" />
+        <div className="p-2 rounded-xl mt-1 shadow-[0_0_15px_var(--app-bg-accent-20)] flex-shrink-0" style={{ backgroundColor: 'var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)', borderWidth: '1px' }}>
+          <Quote size={20} className="text-primary opacity-80" />
         </div>
         <div className="flex-1">
-          <h3 className="text-xs font-bold text-orange-500/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+          <h3 className="text-xs font-bold text-primary/80 uppercase tracking-widest mb-1.5 flex items-center gap-2">
             Quote of the Day
-            <span className="w-8 h-[1px] bg-orange-500/30 inline-block"></span>
+            <span className="w-8 h-[1px] bg-primary/30 inline-block"></span>
           </h3>
-          <p className="text-base md:text-lg text-orange-50 indent-0 leading-relaxed font-serif italic drop-shadow-sm">
+          <p className="text-base md:text-lg text-white indent-0 leading-relaxed font-serif italic drop-shadow-sm">
             "{quote}"
           </p>
         </div>
@@ -409,7 +410,7 @@ const WeeklyCountdown = ({ startDate }: { startDate: string }) => {
   return <span>{timeLeft} UNTIL CYCLE RESET</span>;
 };
 
-const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCustomAvatar, avatarImages, handleImageUpload, notifications, setNotifications, onFinish }: any) => {
+const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCustomAvatar, handleImageUpload, notifications, setNotifications, avatarScale, setAvatarScale, avatarX, setAvatarX, avatarY, setAvatarY, onFinish }: any) => {
   const [step, setStep] = useState<'welcome' | 'alias' | 'avatar' | 'notifications' | 'protocolInfo' | 'preview' | 'entering'>('welcome');
   const [displayedText, setDisplayedText] = useState('');
   const fullText = "WELCOME";
@@ -494,44 +495,171 @@ const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCu
               transition={{ type: "spring", bounce: 0.6, duration: 0.8 }}
               className="w-full card p-6 border border-border/50 shadow-sm flex flex-col bg-[#111111]/80 backdrop-blur-md rounded-2xl absolute"
             >
-               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+               <h3 className="text-lg font-bold mb-2 flex items-center gap-2 text-white">
                  <Camera size={18} className="text-primary" />
-                 Select Visual Identifier
+                 Visual Identifier
                </h3>
-               <div className="flex overflow-x-auto gap-3 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                   {avatarImages.map((img: string, idx: number) => (
-                     <img
-                       key={idx}
-                       src={img}
-                       alt={`Avatar ${idx}`}
-                       className={`w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'}`}
-                       onClick={() => setCustomAvatar(img)}
-                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                     />
-                   ))}
-               </div>
                
-               <div className="mt-4">
-                 <div className="flex items-center gap-4 w-full my-4">
-                    <div className="h-px bg-white/10 flex-1"></div>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex-shrink-0">OR CUSTOM UPLOAD</span>
-                    <div className="h-px bg-white/10 flex-1"></div>
-                 </div>
-                 <input 
-                   type="file" 
-                   accept="image/*" 
-                   className="hidden" 
-                   id="onboard-upload"
-                   onChange={handleImageUpload} 
-                 />
-                 <label 
-                   htmlFor="onboard-upload"
-                   className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full"
+               <p className="text-xs text-muted-foreground mb-4">
+                 Select a profile picture of your choice from this device and customize the focus area.
+               </p>
+
+               <div className="flex flex-col items-center justify-center gap-4 py-3">
+                 {/* Preset display replaced by a clean device preview area */}
+                 <div 
+                   className={`relative w-36 h-36 rounded-xl border border-primary/40 bg-black/50 overflow-hidden shadow-[0_0_20px_var(--app-bg-accent-30)] flex items-center justify-center select-none touch-none ${customAvatar ? 'cursor-grab active:cursor-grabbing border-primary' : 'cursor-default'}`}
+                   onPointerDown={(e) => {
+                     if (!customAvatar) return;
+                     e.preventDefault();
+                     e.currentTarget.setPointerCapture(e.pointerId);
+                     const startX = e.clientX;
+                     const startY = e.clientY;
+                     const initialX = avatarX;
+                     const initialY = avatarY;
+                     
+                     const onPointerMove = (moveEvt: PointerEvent) => {
+                       const dx = moveEvt.clientX - startX;
+                       const dy = moveEvt.clientY - startY;
+                       // Convert speed/drag scale or pass directly
+                       setAvatarX(Math.max(-150, Math.min(150, initialX + dx)));
+                       setAvatarY(Math.max(-150, Math.min(150, initialY + dy)));
+                     };
+                     
+                     const onPointerUp = () => {
+                       window.removeEventListener('pointermove', onPointerMove);
+                       window.removeEventListener('pointerup', onPointerUp);
+                     };
+                     
+                     window.addEventListener('pointermove', onPointerMove);
+                     window.addEventListener('pointerup', onPointerUp);
+                   }}
+                   onWheel={(e) => {
+                     if (!customAvatar) return;
+                     const delta = -e.deltaY * 0.003;
+                     setAvatarScale((prev: any) => Math.max(1.0, Math.min(4.0, prev + delta)));
+                   }}
                  >
-                   <Camera size={16} />
-                   Upload Identity Matrix
-                 </label>
+                   {customAvatar ? (
+                     <img 
+                       src={customAvatar} 
+                       alt="Profile Preview" 
+                       className="w-full h-full object-cover transition-transform origin-center select-none pointer-events-none"
+                       style={{ transform: `scale(${avatarScale}) translate(${avatarX}px, ${avatarY}px)` }}
+                     />
+                   ) : (
+                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30 p-4">
+                       <User size={40} className="text-white/10 mb-2 animate-pulse" />
+                       <span className="text-center text-[10px] tracking-wider uppercase font-semibold">No picture uploaded yet</span>
+                     </div>
+                   )}
+                   {/* Overlay guide indicating visible boundary */}
+                   {customAvatar && (
+                     <>
+                       <div className="absolute inset-2 border border-dashed border-primary/40 pointer-events-none rounded-lg" />
+                       <div className="absolute inset-x-0 inset-y-0 border-2 border-primary pointer-events-none rounded-xl/90">
+                         <div className="absolute top-1 left-2 text-[8px] bg-primary/20 text-primary px-1 rounded uppercase tracking-wider font-mono">Visible Crop</div>
+                       </div>
+                     </>
+                   )}
+                 </div>
+
+                 {customAvatar && (
+                   <span className="text-[10px] text-primary/70 font-mono tracking-widest uppercase animate-pulse">
+                     ↔↕ DRAG IMAGE TO ADJUST • SCROLL TO ZOOM
+                   </span>
+                 )}
+
+                 {/* Custom upload button */}
+                 <div className="w-full">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      id="onboard-upload"
+                      onChange={handleImageUpload} 
+                    />
+                    <label 
+                      htmlFor="onboard-upload"
+                      className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full text-center"
+                    >
+                      <Upload size={16} className="text-primary" />
+                      {customAvatar ? "Choose Different Image" : "Select image from this device"}
+                    </label>
+                 </div>
                </div>
+
+               {/* Grid adjustments panel */}
+               {customAvatar && (
+                 <div className="bg-black/35 border border-white/5 rounded-xl p-3.5 space-y-3.5 my-2">
+                   <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className="text-[10px] font-mono text-primary/80 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                       <GripVertical size={12} className="text-primary animate-pulse" />
+                       Crop / Adjust Position
+                     </span>
+                     <button
+                       onClick={() => {
+                         setAvatarScale(1.0);
+                         setAvatarX(0);
+                         setAvatarY(0);
+                       }}
+                       className="text-[10px] text-muted-foreground hover:text-white font-mono uppercase tracking-wider underline underline-offset-2 transition-colors cursor-pointer"
+                     >
+                       Reset View
+                     </button>
+                   </div>
+
+                   {/* Scale Zoom Slider */}
+                   <div className="space-y-1">
+                     <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                       <span>ZOOM / SCALE</span>
+                       <span className="text-primary font-bold">{Math.round(avatarScale * 100)}%</span>
+                     </div>
+                     <input 
+                       type="range"
+                       min="1"
+                       max="3"
+                       step="0.05"
+                       value={avatarScale}
+                       onChange={(e) => setAvatarScale(parseFloat(e.target.value))}
+                       className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                     />
+                   </div>
+
+                   {/* Offset X Slider */}
+                   <div className="space-y-1">
+                     <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                       <span>HORIZONTAL OFFSET (X)</span>
+                       <span className="text-primary font-bold">{avatarX}px</span>
+                     </div>
+                     <input 
+                       type="range"
+                       min="-100"
+                       max="100"
+                       step="1"
+                       value={avatarX}
+                       onChange={(e) => setAvatarX(parseInt(e.target.value))}
+                       className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                     />
+                   </div>
+
+                   {/* Offset Y Slider */}
+                   <div className="space-y-1">
+                     <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                       <span>VERTICAL OFFSET (Y)</span>
+                       <span className="text-primary font-bold">{avatarY}px</span>
+                     </div>
+                     <input 
+                       type="range"
+                       min="-100"
+                       max="100"
+                       step="1"
+                       value={avatarY}
+                       onChange={(e) => setAvatarY(parseInt(e.target.value))}
+                       className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                     />
+                   </div>
+                 </div>
+               )}
 
                <button 
                   onMouseEnter={() => playCyberSound('hover')}
@@ -539,9 +667,9 @@ const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCu
                     playCyberSound('transition');
                     setTimeout(() => setStep('notifications'), 100);
                   }}
-                  className="mt-6 flex justify-center items-center gap-2 px-6 py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-lg font-bold text-white transition-all cursor-pointer w-full transform hover:-translate-y-1"
+                  className="mt-4 flex justify-center items-center gap-2 px-6 py-3.5 bg-white/10 hover:bg-white/20 rounded-2xl text-md font-bold text-white transition-all cursor-pointer w-full transform hover:-translate-y-0.5"
                >
-                  NEXT <ChevronRight size={20} />
+                  NEXT <ChevronRight size={18} />
                </button>
             </motion.div>
           )}
@@ -602,7 +730,7 @@ const OnboardingScreen = ({ operativeName, setOperativeName, customAvatar, setCu
                  Life Protocol & Stats
                </h3>
                
-               <div className="p-4 rounded-xl mb-4 bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)] text-sm leading-relaxed">
+               <div className="p-4 rounded-xl mb-4 bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 shadow-[0_0_15px_var(--app-bg-accent-10)] text-sm leading-relaxed">
                  <strong className="text-purple-300">Why is Life Protocol important?</strong><br/>
                  <span className="text-purple-100/80">It establishes the non-negotiable biological baseline required for optimal human function. By securing essential daily inputs—restorative sleep, cognitive stillness, physical movement, and natural light—you proactively fortify your immune system, regulate your circadian rhythm, and prevent chronic physiological degradation.</span>
                </div>
@@ -690,10 +818,10 @@ const CurrentTimeLine = () => {
   
   return (
     <div 
-      className="absolute left-0 right-0 h-[2px] bg-red-500 z-40 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+      className="absolute left-0 right-0 h-[2px] bg-red-500 z-40 pointer-events-none shadow-[0_0_8px_var(--app-bg-accent)]"
       style={{ top: `calc(${topPercent}% - 1px)` }}
     >
-      <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]" />
+      <div className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_var(--app-bg-accent)]" />
     </div>
   );
 };
@@ -709,6 +837,18 @@ export default function App() {
   // Custom Avatar State
   const [customAvatar, setCustomAvatar] = useState<string | null>(() => {
     return localStorage.getItem('app_custom_avatar') || null;
+  });
+  const [avatarScale, setAvatarScale] = useState<number>(() => {
+    const val = localStorage.getItem('app_avatar_scale');
+    return val ? parseFloat(val) : 1.0;
+  });
+  const [avatarX, setAvatarX] = useState<number>(() => {
+    const val = localStorage.getItem('app_avatar_x');
+    return val ? parseInt(val) : 0;
+  });
+  const [avatarY, setAvatarY] = useState<number>(() => {
+    const val = localStorage.getItem('app_avatar_y');
+    return val ? parseInt(val) : 0;
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -726,8 +866,8 @@ export default function App() {
   const [showQuoteBox, setShowQuoteBox] = useState(() => {
     return localStorage.getItem('app_showQuoteBox') !== 'false';
   });
-  const [enableOrangeBackgrounds, setEnableOrangeBackgrounds] = useState(() => {
-    return localStorage.getItem('app_orangeBgs') !== 'false';
+  const [enableSnowfall, setEnableSnowfall] = useState(() => {
+    return localStorage.getItem('app_enableSnowfall') !== 'false';
   });
   const [showProfileAndStats, setShowProfileAndStats] = useState(() => {
     return localStorage.getItem('app_showProfileAndStats') !== 'false';
@@ -735,10 +875,7 @@ export default function App() {
   const [showTabLabels, setShowTabLabels] = useState(() => {
     return localStorage.getItem('app_showTabLabels') !== 'false';
   });
-  const [themeBackgrounds, setThemeBackgrounds] = useState(() => {
-    return localStorage.getItem('app_themeBackgrounds') === 'true';
-  });
-
+  
   const dataImportRef = useRef<HTMLInputElement>(null);
 
   // Sync state to LocalStorage
@@ -753,18 +890,15 @@ export default function App() {
     localStorage.setItem('app_showQuoteBox', showQuoteBox.toString());
   }, [showQuoteBox]);
   useEffect(() => {
-    localStorage.setItem('app_orangeBgs', enableOrangeBackgrounds.toString());
-  }, [enableOrangeBackgrounds]);
+    localStorage.setItem('app_enableSnowfall', enableSnowfall.toString());
+  }, [enableSnowfall]);
   useEffect(() => {
     localStorage.setItem('app_showProfileAndStats', showProfileAndStats.toString());
   }, [showProfileAndStats]);
   useEffect(() => {
     localStorage.setItem('app_showTabLabels', showTabLabels.toString());
   }, [showTabLabels]);
-  useEffect(() => {
-    localStorage.setItem('app_themeBackgrounds', themeBackgrounds.toString());
-  }, [themeBackgrounds]);
-  useEffect(() => {
+    useEffect(() => {
     localStorage.setItem('app_has_onboarded', hasOnboarded.toString());
   }, [hasOnboarded]);
 
@@ -775,6 +909,18 @@ export default function App() {
       localStorage.removeItem('app_custom_avatar');
     }
   }, [customAvatar]);
+
+  useEffect(() => {
+    localStorage.setItem('app_avatar_scale', avatarScale.toString());
+  }, [avatarScale]);
+
+  useEffect(() => {
+    localStorage.setItem('app_avatar_x', avatarX.toString());
+  }, [avatarX]);
+
+  useEffect(() => {
+    localStorage.setItem('app_avatar_y', avatarY.toString());
+  }, [avatarY]);
 
   useEffect(() => {
     if (operativeName) {
@@ -1160,9 +1306,8 @@ export default function App() {
       lifeProtocol,
       lifeProtocolLevels,
       lastResetDate,
-      goals,
-      themeBackgrounds
-    };
+      enableSnowfall,
+      goals};
     const jsonStr = JSON.stringify(data, null, 2);
     
     const zip = new JSZip();
@@ -1192,6 +1337,7 @@ export default function App() {
           if (data.operativeName !== undefined) setOperativeName(data.operativeName);
           if (data.notifications !== undefined) setNotifications(data.notifications);
           if (data.appThemeColor !== undefined) setAppThemeColor(data.appThemeColor);
+          if (data.enableSnowfall !== undefined) setEnableSnowfall(data.enableSnowfall);
           if (data.showProfileAndStats !== undefined) setShowProfileAndStats(data.showProfileAndStats);
           if (data.customAvatar !== undefined) setCustomAvatar(data.customAvatar);
           if (data.dailyTasks !== undefined) setDailyTasks(data.dailyTasks);
@@ -1203,7 +1349,6 @@ export default function App() {
           if (data.lifeProtocolLevels !== undefined) setLifeProtocolLevels(data.lifeProtocolLevels);
           if (data.lastResetDate !== undefined) setLastResetDate(data.lastResetDate);
           if (data.goals !== undefined) setGoals(data.goals);
-          if (data.themeBackgrounds !== undefined) setThemeBackgrounds(data.themeBackgrounds);
         } catch (err) {
           console.error("Failed to parse archive data", err);
         }
@@ -1215,9 +1360,9 @@ export default function App() {
   };
 
   const getBarColorClass = (filled: number) => {
-    if (filled <= 3) return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]';
-    if (filled >= 7) return 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]';
-    return 'bg-primary shadow-[0_0_8px_rgba(255,106,0,0.5)]';
+    if (filled <= 3) return 'bg-red-500 shadow-[0_0_8px_var(--app-bg-accent-30)]';
+    if (filled >= 7) return 'bg-green-500 shadow-[0_0_8px_var(--app-bg-accent-30)]';
+    return 'bg-primary shadow-[0_0_8px_var(--app-bg-accent-30)]';
   };
 
   const handleToggleLifeProtocol = (key: string) => {
@@ -1375,13 +1520,17 @@ export default function App() {
         setOperativeName={setOperativeName}
         customAvatar={customAvatar}
         setCustomAvatar={setCustomAvatar}
-        avatarImages={avatarImages}
         handleImageUpload={handleImageUpload}
         notifications={notifications}
         setNotifications={setNotifications}
+        avatarScale={avatarScale}
+        setAvatarScale={setAvatarScale}
+        avatarX={avatarX}
+        setAvatarX={setAvatarX}
+        avatarY={avatarY}
+        setAvatarY={setAvatarY}
         onFinish={() => {
           if (!operativeName.trim()) setOperativeName("ALPHA-GUEST");
-          if (!customAvatar && avatarImages.length > 0) setCustomAvatar(avatarImages[0]);
           setHasOnboarded(true);
         }}
       />
@@ -1395,6 +1544,18 @@ export default function App() {
       transition={{ duration: 1, ease: "easeOut" }}
       className="min-h-screen text-foreground flex w-full relative overflow-hidden bg-black"
     >
+      {enableSnowfall && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Snowfall 
+            color={appBackgroundColor} 
+            snowflakeCount={150} 
+            radius={[0.5, 2.5]} 
+            speed={[0.5, 2.0]}
+            wind={[-0.5, 1.5]}
+            style={{ opacity: 0.7 }}
+          />
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-h-screen w-full relative z-10 pt-6">
@@ -1404,15 +1565,21 @@ export default function App() {
           
           {/* Top Header with Logo */}
           <div className="w-full flex justify-between items-center bg-black/40 border border-white/5 backdrop-blur-md p-4 rounded-2xl shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,106,0,0.3)] border border-primary/20 bg-black flex items-center justify-center p-1">
-                 <img src="/Profile/Logo_Life_Planner.png" alt="Life Planner Logo" className="w-full h-full object-contain filter drop-shadow-md" />
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 md:h-16 md:w-16 rounded-xl overflow-hidden shadow-[0_0_15px_var(--app-bg-accent-30)] border border-primary/20 bg-black flex items-center justify-center">
+                 <img 
+                   src={customAvatar || fallbackMobileImg} 
+                   alt={operativeName || "User Profile"} 
+                   className="w-full h-full object-cover filter drop-shadow-md origin-center" 
+                   style={{ transform: `scale(${avatarScale}) translate(${avatarX}px, ${avatarY}px)` }}
+                   referrerPolicy="no-referrer"
+                 />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-primary/80 tracking-tighter uppercase leading-none">
-                  Life Planner
+                <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-primary/80 tracking-tighter uppercase leading-none">
+                  {operativeName}
                 </h1>
-                <span className="text-[10px] text-primary/70 font-mono tracking-widest uppercase">System Protocol</span>
+                <span className="text-[10px] md:text-xs text-primary/70 font-mono tracking-widest uppercase">System Protocol</span>
               </div>
             </div>
           </div>
@@ -1421,152 +1588,6 @@ export default function App() {
 
           {/* Bento Grid layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Profile Header & Toggle */}
-            <div className="md:col-span-3 flex items-center justify-between mb-[-10px]">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                <User size={20} className="text-primary" />
-                Profile Overview
-              </h2>
-              <button 
-                onClick={() => setShowProfileAndStats(!showProfileAndStats)}
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-              >
-                <ChevronDown 
-                  size={24} 
-                  className={`transition-transform duration-300 ${showProfileAndStats ? 'rotate-180' : ''}`} 
-                />
-              </button>
-            </div>
-
-            {/* Unified Profile & Focus Metrics */}
-            {showProfileAndStats && (
-            <div className="group bg-[#050505] rounded-xl p-0 md:col-span-3 grid grid-cols-1 md:grid-cols-12 border border-white/10 shadow-sm relative overflow-hidden items-stretch">
-              
-              {/* Left Side: Avatar Image (Roughly 1/3) */}
-              <div className="md:col-span-4 relative aspect-[3/4]">
-                {customAvatar ? (
-                  <img src={customAvatar} alt="Custom Profile" className="w-full h-full object-cover object-center" />
-                ) : (
-                  <picture>
-                    <source media="(min-width: 1024px)" srcSet={laptopAvatarImg} />
-                    <source media="(min-width: 768px)" srcSet={tabletAvatarImg} />
-                    <img 
-                      src={mobileAvatarImg} 
-                      alt={operativeName} 
-                      className="w-full h-full object-cover object-center" 
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackMobileImg;
-                      }}
-                    />
-                  </picture>
-                )}
-              </div>
-
-              {/* Right Side: Content Area (Roughly 2/3) */}
-              <div className="md:col-span-8 bg-[#0a0a0f] p-6 md:p-8 flex flex-col">
-                {/* User Profile Content - Now on the right, next to image */}
-                <div className="mb-8">
-                  <div className="hidden sm:block">
-                    <div className="flex items-center gap-4 mb-2">
-                       <h3 className="font-black text-4xl lg:text-5xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">{operativeName}</h3>
-                       <div className="bg-primary/10 border border-primary/20 p-2 rounded-xl mt-1 shadow-[0_0_15px_rgba(255,106,0,0.2)]">
-                         <Zap size={20} className="text-primary fill-primary/20" />
-                       </div>
-                    </div>
-                  </div>
-                  {/* Mobile version */}
-                  <div className="sm:hidden">
-                    <div className="flex items-center gap-3 mb-2">
-                       <h3 className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-primary/40 drop-shadow-md">{operativeName}</h3>
-                       <div className="bg-primary/10 border border-primary/20 p-1.5 rounded-lg mt-1 shadow-[0_0_10px_rgba(255,106,0,0.2)]">
-                         <Zap size={16} className="text-primary fill-primary/20" />
-                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Daily Energy Section - Below the name */}
-                <div className="flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-1 text-white flex-shrink-0">
-                    <HeartPulse size={18} className="text-primary" />
-                    <span className="font-bold text-lg">Life Stats</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs mb-4">Connect to Life protocol</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* HP Stat */}
-                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
-                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-                          <Heart size={48} className="text-primary" />
-                       </div>
-                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
-                         <Heart size={16} className="text-primary fill-primary/20" />
-                         <span className="tracking-widest uppercase text-xs">HP</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.sleep}0%</span>
-                       </div>
-                       <div className="flex h-1.5 gap-1 w-full relative z-10">
-                         {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.sleep ? getBarColorClass(lifeProtocolLevels.sleep) : 'bg-white/10'}`} />
-                         ))}
-                       </div>
-                    </div>
-
-                    {/* Focus Stat */}
-                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
-                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-                          <Target size={48} className="text-primary" />
-                       </div>
-                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
-                         <Target size={16} className="text-primary" />
-                         <span className="tracking-widest uppercase text-xs">Focus</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.meditation}0%</span>
-                       </div>
-                       <div className="flex h-1.5 gap-1 w-full relative z-10">
-                         {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.meditation ? getBarColorClass(lifeProtocolLevels.meditation) : 'bg-white/10'}`} />
-                         ))}
-                       </div>
-                    </div>
-
-                    {/* Physical Stat */}
-                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
-                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-                          <Dumbbell size={48} className="text-primary" />
-                       </div>
-                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
-                         <Dumbbell size={16} className="text-primary" />
-                         <span className="tracking-widest uppercase text-xs">Physical</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.walk}0%</span>
-                       </div>
-                       <div className="flex h-1.5 gap-1 w-full relative z-10">
-                         {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.walk ? getBarColorClass(lifeProtocolLevels.walk) : 'bg-white/10'}`} />
-                         ))}
-                       </div>
-                    </div>
-
-                    {/* Mental Stat */}
-                    <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] hover:border-primary/30 transition-all duration-300">
-                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-300">
-                          <Brain size={48} className="text-primary" />
-                       </div>
-                       <div className="flex items-center gap-2 mb-3 font-bold text-sm text-white relative z-10">
-                         <Brain size={16} className="text-primary" />
-                         <span className="tracking-widest uppercase text-xs">Mental</span>
-                         <span className="ml-auto text-primary font-mono text-xs">{lifeProtocolLevels.sunlight}0%</span>
-                       </div>
-                       <div className="flex h-1.5 gap-1 w-full relative z-10">
-                         {[...Array(10)].map((_, i) => (
-                           <div key={i} className={`flex-1 rounded-full ${i < lifeProtocolLevels.sunlight ? getBarColorClass(lifeProtocolLevels.sunlight) : 'bg-white/10'}`} />
-                         ))}
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            )}
 
             {/* Quick Action Pop-up Buttons (Memory Matrix Style) */}
             <div className="md:col-span-3 flex flex-wrap gap-3">
@@ -1577,7 +1598,7 @@ export default function App() {
                 { icon: Target, label: "Goals" },
                 { icon: Activity, label: "Analysis" },
                 { icon: Box, label: "Mega Projects" },
-                { icon: User, label: "Account" }
+                { icon: Settings, label: "Account" }
               ].map((Action, i) => {
                 const isActive = activeTab === Action.label;
                 return (
@@ -1607,12 +1628,8 @@ export default function App() {
               <>
                 {/* Daily Tasks */}
                 <div 
-                  className={`md:col-span-3 card p-6 border shadow-lg flex flex-col gap-6 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
-                  style={themeBackgrounds ? { 
-                    background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                    borderColor: 'var(--app-bg-accent-30)',
-                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                  } : {}}
+                  className={`md:col-span-3 card p-6 border shadow-lg flex flex-col gap-6 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 bg-[#111111]/80 border-border/50 shadow-sm`}
+                  style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                 >
                   
                   {/* Top Section */}
@@ -1666,7 +1683,7 @@ export default function App() {
                             <span className="text-xs font-bold text-white tracking-widest">{calculateDailyPoints()} / {calculateTotalDailyPoints()} points</span>
                             <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <motion.div 
-                                    className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]"
+                                    className="h-full bg-primary shadow-[0_0_8px_var(--app-bg-accent-30)]"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${calculateTotalDailyPoints() === 0 ? 0 : (calculateDailyPoints() / calculateTotalDailyPoints()) * 100}%` }}
                                     transition={{ duration: 0.5, ease: "easeOut" }}
@@ -1681,9 +1698,8 @@ export default function App() {
                     <div className="flex-1 overflow-y-auto z-10 flex flex-col gap-2 rounded-xl bg-[#111111]/50 border border-white/5 p-4 scrollbar-thin scrollbar-thumb-white/10 min-h-[300px]">
                       {filteredDailyTasks.length === 0 ? (
                          <div className="flex flex-col items-center justify-center flex-1 h-full text-center py-12">
-                            <div className="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center mb-4">
-                               <img src="/Profile/Logo_Life_Planner.png" alt="No tasks" className="w-6 h-6 object-contain" />
-                            </div>
+
+
                             <h3 className="text-sm font-semibold text-white mb-1">No tasks found</h3>
                             <p className="text-xs text-muted-foreground/60">Start by adding a new dimension to your day.</p>
                          </div>
@@ -1721,12 +1737,8 @@ export default function App() {
 
                 {/* Life Protocol Block (Tasks Bottom) */}
                 <div 
-                  className={`md:col-span-3 card p-6 border shadow-lg backdrop-blur-md rounded-2xl flex flex-col md:flex-row mt-2 min-h-[200px] gap-8 relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50 shadow-sm'}`}
-                  style={themeBackgrounds ? { 
-                    background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                    borderColor: 'var(--app-bg-accent-30)',
-                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                  } : {}}
+                  className={`md:col-span-3 card p-6 border shadow-lg backdrop-blur-md rounded-2xl flex flex-col md:flex-row mt-2 min-h-[200px] gap-8 relative overflow-hidden transition-all duration-500 bg-[#0a0a0a]/80 border-border/50 shadow-sm`}
+                  style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                 >
                   {/* Left: Protocol List */}
                   <div className="flex-1 flex flex-col">
@@ -1770,7 +1782,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="md:col-span-3 mt-4 p-5 rounded-2xl bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 mx-auto text-left w-full max-w-5xl text-sm flex gap-4 items-start shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                <div className="md:col-span-3 mt-4 p-5 rounded-2xl bg-gradient-to-br from-purple-900/30 to-fuchsia-900/20 border border-purple-500/20 mx-auto text-left w-full max-w-5xl text-sm flex gap-4 items-start shadow-[0_0_15px_var(--app-bg-accent-10)]">
                   <HeartPulse className="text-purple-400 flex-shrink-0 mt-0.5" size={20} />
                   <div>
                     <h4 className="text-purple-300 font-bold mb-1">Why is Life Protocol important?</h4>
@@ -1788,12 +1800,8 @@ export default function App() {
                 
                 {/* Left Side: Tasks Allotted Today */}
                 <div className="lg:col-span-1 flex flex-col gap-6">
-                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50 shadow-sm'}`}
-                    style={themeBackgrounds ? { 
-                      background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                      borderColor: 'var(--app-bg-accent-30)',
-                      boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                    } : undefined}>
+                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 bg-[#111111]/80 border-border/50 shadow-sm`}
+                    style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}>
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white tracking-tight">Today's Tasks</h2>
                     </div>
@@ -1853,12 +1861,8 @@ export default function App() {
 
                 {/* Right Side: Timeline Grid */}
                 <div className="lg:col-span-3 flex flex-col gap-6">
-                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-x-auto transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50 shadow-sm'}`}
-                    style={themeBackgrounds ? { 
-                      background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                      borderColor: 'var(--app-bg-accent-30)',
-                      boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                    } : undefined}>
+                  <div className={`card p-6 border shadow-lg flex flex-col gap-4 h-full backdrop-blur-md rounded-2xl relative overflow-x-auto transition-all duration-500 bg-[#0a0a0a]/80 border-border/50 shadow-sm`}
+                    style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}>
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-2">
                       <div className="flex items-center gap-3">
                          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -2049,12 +2053,8 @@ export default function App() {
                 
                 {/* Task Logs (Heatmap / Continuous active days) */}
                 <div 
-                  className={`card p-6 border backdrop-blur-md rounded-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-500 shadow-sm ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
-                  style={themeBackgrounds ? { 
-                    background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                    borderColor: 'var(--app-bg-accent-30)',
-                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                  } : undefined}
+                  className={`card p-6 border backdrop-blur-md rounded-2xl flex flex-col gap-4 relative overflow-hidden transition-all duration-500 shadow-sm bg-[#0a0a0a]/80 border-border/50`}
+                  style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                 >
                    <div className="flex justify-between items-center cursor-pointer" onClick={() => setShowTaskLog(!showTaskLog)}>
                       <div>
@@ -2144,12 +2144,8 @@ export default function App() {
                 </div>
 
                 <div 
-                  className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
-                  style={themeBackgrounds ? { 
-                    background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                    borderColor: 'var(--app-bg-accent-30)',
-                    boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                  } : undefined}
+                  className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 bg-[#0a0a0a]/80 border-border/50`}
+                  style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
@@ -2236,12 +2232,8 @@ export default function App() {
                 {/* Right Side: Upcoming Events */}
                 <div className="flex flex-col gap-6">
                    <div 
-                     className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl flex-1 flex flex-col relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#0a0a0a]/80 border-border/50'}`}
-                     style={themeBackgrounds ? { 
-                       background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                       borderColor: 'var(--app-bg-accent-30)',
-                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                     } : undefined}
+                     className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl flex-1 flex flex-col relative overflow-hidden transition-all duration-500 bg-[#0a0a0a]/80 border-border/50`}
+                     style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                    >
                       <div className="flex items-center justify-between mb-6">
                          <h3 className="text-lg font-black uppercase tracking-widest text-white flex items-center gap-2">
@@ -2252,7 +2244,7 @@ export default function App() {
                            <span className="text-xs text-primary font-mono font-bold bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 leading-none flex items-center justify-center">{events.length} LOGS</span>
                            <button 
                              onClick={() => setIsEventModalOpen(true)}
-                             className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-primary/50 shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+                             className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-primary/50 shadow-[0_0_10px_var(--app-bg-accent-10)]"
                            >
                              <Plus size={14} />
                            </button>
@@ -2301,7 +2293,7 @@ export default function App() {
                                          <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] sm:text-[10px] font-bold rounded shadow-sm border border-primary/20 uppercase tracking-widest">{diffDays === 0 ? 'TODAY' : diffDays === 1 ? 'TOMORROW' : `IN ${diffDays} DAYS`}</span>
                                          <button 
                                            onClick={(e) => { e.stopPropagation(); deleteEvent(event.id); }}
-                                           className="p-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-500 hover:text-orange-400 rounded-md transition-all shadow-[0_0_8px_rgba(249,115,22,0.15)]"
+                                           className="p-1.5 bg-primary/20 hover:bg-primary/30 text-primary hover:opacity-80 rounded-md transition-all shadow-[0_0_8px_var(--app-bg-accent-20)]"
                                            title="Delete Log"
                                          >
                                            <Trash2 size={14} />
@@ -2320,13 +2312,9 @@ export default function App() {
 
             {activeTab === "Goals" && (
               <div className="md:col-span-3 space-y-6">
-                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
-                  {enableOrangeBackgrounds && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
-                    </>
-                  )}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group" style={{ backgroundColor: 'var(--app-bg-accent-10)', borderColor: 'var(--app-bg-accent-20)', borderWidth: '1px' }}>
+                  <div className="absolute inset-0 opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)' }}></div>
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-80 pointer-events-none" />
                   <div className="relative z-10">
                     <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
                       <Target className="text-primary w-6 h-6 md:w-7 md:h-7" />
@@ -2345,12 +2333,8 @@ export default function App() {
 
                 {goals.length === 0 ? (
                   <div 
-                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl ${themeBackgrounds ? 'border-transparent' : 'border-border/50'}`}
-                    style={themeBackgrounds ? {
-                       background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                       borderColor: 'var(--app-bg-accent-30)',
-                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                    } : undefined}
+                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl border-border/50`}
+                    style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                   >
                     <Target size={48} className="text-muted-foreground mb-4 opacity-50" />
                     <h3 className="text-xl font-bold mb-2">No Active Goals</h3>
@@ -2375,12 +2359,8 @@ export default function App() {
                       return (
                         <div 
                           key={goal.id} 
-                          className={`border rounded-2xl p-6 hover:border-primary/30 transition-all shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 ${goal.completed ? 'opacity-60' : ''} ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111] border-white/10'}`}
-                          style={themeBackgrounds ? {
-                             background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                             borderColor: 'var(--app-bg-accent-30)',
-                             boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                          } : undefined}
+                          className={`border rounded-2xl p-6 hover:border-primary/30 transition-all shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 ${goal.completed ? 'opacity-60' : ''} bg-[#111111] border-white/10`}
+                          style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                         >
                           <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${goal.completed ? 'bg-green-500/50' : 'bg-primary/50 group-hover:bg-primary'}`}></div>
                           <div className="flex justify-between items-start mb-4 pl-3">
@@ -2447,7 +2427,7 @@ export default function App() {
             )}
 
             {activeTab === "Analysis" && (
-              <div className="md:col-span-3 flex flex-col gap-6" style={(isMobileDevice && analysisView === 'graph') ? { zoom: 0.65 } : {}}>
+              <div className="md:col-span-3 flex flex-col gap-6">
                 
                 {/* View Toggles */}
                 <div className="flex justify-start gap-2 border rounded-xl p-1 self-start relative overflow-hidden group bg-cyan-500/10 border-cyan-500/20">
@@ -2457,15 +2437,11 @@ export default function App() {
                 </div>
 
                 {analysisView === 'graph' && (
-                  <div className="hidden sm:block w-full max-w-3xl mx-auto">
+                  <div className="hidden sm:block w-full">
                     {/* Daily Task Performance Graph */}
                     <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 bg-[#111111]/80 border-border/50`}
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
@@ -2480,8 +2456,8 @@ export default function App() {
                           <AreaChart data={analysisData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
                               <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#ff6a00" stopOpacity={0}/>
+                                <stop offset="5%" stopColor={appThemeColor} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={appThemeColor} stopOpacity={0}/>
                               </linearGradient>
                             </defs>
                             <XAxis dataKey="day" stroke="#ffffff40" fontSize={12} tickLine={false} axisLine={false} />
@@ -2491,7 +2467,7 @@ export default function App() {
                               contentStyle={{ backgroundColor: '#050505', borderColor: '#ffffff20', borderRadius: '8px', fontSize: '14px' }}
                               itemStyle={{ color: '#fff' }}
                             />
-                              <Area type="monotone" dataKey="daily" name="Daily Completion %" stroke="#ff6a00" strokeWidth={3} fillOpacity={1} fill="url(#colorDaily)" activeDot={{ r: 6, fill: '#ff6a00', stroke: '#fff', strokeWidth: 2 }} />
+                              <Area type="monotone" dataKey="daily" name="Daily Completion %" stroke={appThemeColor} strokeWidth={3} fillOpacity={1} fill="url(#colorDaily)" activeDot={{ r: 6, fill: appThemeColor, stroke: '#fff', strokeWidth: 2 }} />
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>
@@ -2501,15 +2477,11 @@ export default function App() {
                 )}
                 
                 {analysisView === 'block' && (
-                  <div className="w-full max-w-3xl mx-auto">
+                  <div className="w-full">
                     {/* Daily Block Craft */}
                     <div 
-                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111]/80 border-border/50'}`}
-                      style={themeBackgrounds ? {
-                         background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                         borderColor: 'var(--app-bg-accent-30)',
-                         boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                      } : undefined}
+                      className={`card p-6 border shadow-sm backdrop-blur-md rounded-2xl relative overflow-hidden transition-all duration-500 bg-[#111111]/80 border-border/50`}
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2 relative z-10">
                         <h2 className="text-xl font-bold flex items-center gap-2">
@@ -2518,10 +2490,10 @@ export default function App() {
                         </h2>
                         <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-mono tracking-widest uppercase">{avgDailyPct}% Avg</span>
                       </div>
-                      <div className="flex w-full min-w-0 md:flex-wrap gap-1 sm:gap-4 relative z-10 items-end justify-between sm:justify-center h-[200px] pb-4 md:pb-0">
+                      <div className="flex w-full min-w-0 md:flex-wrap gap-1 sm:gap-6 relative z-10 items-end justify-between sm:justify-center h-[300px] pb-4 md:pb-0">
                         {analysisData.map((data, idx) => (
-                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-2 flex-1 sm:flex-none">
-                             <div className="w-full max-w-[32px] sm:max-w-none sm:w-12 h-32 sm:h-40 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
+                           <div key={`daily-${idx}`} className="flex flex-col items-center gap-3 flex-1 sm:flex-none">
+                             <div className="w-full max-w-[40px] sm:max-w-none sm:w-20 h-48 sm:h-60 bg-white/5 rounded-t-sm rounded-b-md border border-white/10 relative overflow-hidden flex flex-col justify-end shadow-inner">
                                <motion.div 
                                  initial={{ height: 0 }}
                                  animate={{ height: `${data.daily}%` }}
@@ -2529,8 +2501,8 @@ export default function App() {
                                  className="w-full bg-gradient-to-t from-primary/80 to-primary/40 rounded-t-sm"
                                />
                              </div>
-                             <span className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
-                             <span className="text-[10px] font-bold text-white">{data.daily}%</span>
+                             <span className="text-xs sm:text-sm font-mono text-muted-foreground uppercase">{data.day === 'Today' ? 'Tod' : data.day.replace('Day ', 'D')}</span>
+                             <span className="text-xs font-bold text-white shadow-sm">{data.daily}%</span>
                            </div>
                         ))}
                       </div>
@@ -2542,13 +2514,9 @@ export default function App() {
 
             {activeTab === "Mega Projects" && (
               <div className="md:col-span-3 space-y-6">
-                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
-                  {enableOrangeBackgrounds && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
-                    </>
-                  )}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group" style={{ backgroundColor: 'var(--app-bg-accent-10)', borderColor: 'var(--app-bg-accent-20)', borderWidth: '1px' }}>
+                  <div className="absolute inset-0 opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)' }}></div>
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-80 pointer-events-none" />
                   <div className="relative z-10">
                     <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3">
                       <Box className="text-primary w-6 h-6 md:w-7 md:h-7" />
@@ -2567,12 +2535,8 @@ export default function App() {
 
                 {projects.length === 0 ? (
                   <div 
-                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl ${themeBackgrounds ? 'border-transparent' : 'border-border/50'}`}
-                    style={themeBackgrounds ? {
-                       background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                       borderColor: 'var(--app-bg-accent-30)',
-                       boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                    } : undefined}
+                    className={`card p-12 border shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden transition-all duration-500 rounded-2xl border-border/50`}
+                    style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                   >
                     <Box size={48} className="text-muted-foreground mb-4 opacity-50" />
                     <h3 className="text-xl font-bold mb-2">No Active Architectures</h3>
@@ -2583,12 +2547,8 @@ export default function App() {
                     {projects.map((proj) => (
                       <div 
                         key={proj.id} 
-                        className={`border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 ${themeBackgrounds ? 'border-transparent' : 'bg-[#111111] border-white/10'}`}
-                        style={themeBackgrounds ? {
-                           background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                           borderColor: 'var(--app-bg-accent-30)',
-                           boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                        } : undefined}
+                        className={`border rounded-2xl p-6 hover:border-primary/30 transition-colors shadow-lg flex flex-col h-full relative overflow-hidden group duration-500 bg-[#111111] border-white/10`}
+                        style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
                       >
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/50 group-hover:bg-primary transition-colors"></div>
                         <div className="flex justify-between items-start mb-4 pl-3">
@@ -2633,285 +2593,390 @@ export default function App() {
               <div className="md:col-span-3 space-y-6">
                 
                 {/* Header */}
-                <div className={`flex items-center gap-4 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group ${enableOrangeBackgrounds ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-[#0a0a0a] border border-white/5'}`}>
-                  {enableOrangeBackgrounds && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 pointer-events-none" />
-                    </>
-                  )}
+                <div className="flex items-center gap-4 p-5 md:p-6 rounded-2xl shadow-lg relative overflow-hidden group" style={{ backgroundColor: 'var(--app-bg-accent-10)', borderColor: 'var(--app-bg-accent-20)', borderWidth: '1px' }}>
+                  <div className="absolute inset-0 opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)' }}></div>
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-80 pointer-events-none" />
                   <div className="relative z-10 w-full">
                     <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide">Operative Profile</h2>
                     <p className="text-sm text-primary font-mono mt-1 uppercase tracking-widest">{operativeName}</p>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                   {/* Operative Alias Box */}
-                   <div 
-                     className={`card p-6 border shadow-sm flex flex-col transition-all duration-500 rounded-2xl relative overflow-hidden ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
-                     style={themeBackgrounds ? {
-                        background: `linear-gradient(to bottom right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                        borderColor: 'var(--app-bg-accent-30)',
-                        boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                     } : undefined}
-                   >
-                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                        <User size={18} className="text-primary" />
-                        Operative Alias
-                      </h3>
-                      <input 
-                        type="text" 
-                        value={operativeName}
-                        onChange={(e) => setOperativeName(e.target.value)}
-                        placeholder="Enter Alias..."
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
-                      />
-                   </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* LEFT COL: IDENTITY */}
+                  <div className="flex flex-col gap-6 lg:col-span-1">
+                    {/* Operative Alias Box */}
+                    <div 
+                      className="card p-6 border shadow-sm flex flex-col transition-all duration-500 rounded-2xl relative overflow-hidden bg-[#050505] border-border/50 block"
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
+                    >
+                       <h3 className="text-lg font-bold flex items-center gap-2 text-white pb-2 border-b border-white/5 mb-4">
+                         <User size={18} className="text-primary" />
+                         Operative Alias
+                       </h3>
+                       <input 
+                         type="text" 
+                         value={operativeName}
+                         onChange={(e) => setOperativeName(e.target.value)}
+                         placeholder="Enter Alias..."
+                         className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-all font-medium"
+                       />
+                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       {/* Avatar / Identity Selection */}
-                       <div 
-                         className={`card p-6 border shadow-sm flex flex-col overflow-hidden transition-all duration-500 rounded-2xl relative ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
-                         style={themeBackgrounds ? {
-                            background: `linear-gradient(to bottom left, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                            borderColor: 'var(--app-bg-accent-30)',
-                            boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                         } : undefined}
-                       >
-                          <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                            <Camera size={18} className="text-primary" />
-                            Visual Identifier
-                          </h3>
-                          <div className="flex overflow-x-auto gap-3 pb-4 snap-x scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                              {avatarImages.map((img, idx) => (
-                                <img
-                                  key={idx}
-                                  src={img}
-                                  alt={`Avatar ${idx}`}
-                                  className={`w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl cursor-pointer snap-center border-2 transition-all hover:scale-105 flex-shrink-0 ${customAvatar === img ? 'border-primary ring-2 ring-primary/30 opacity-100' : 'border-white/10 opacity-60 hover:opacity-100'}`}
-                                  onClick={() => setCustomAvatar(img)}
-                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                />
-                              ))}
-                          </div>
-                          
-                          <div className="mt-auto">
-                            <div className="flex items-center gap-4 w-full my-4">
-                               <div className="h-px bg-white/10 flex-1"></div>
-                               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex-shrink-0">OR CUSTOM UPLOAD</span>
-                               <div className="h-px bg-white/10 flex-1"></div>
-                            </div>
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              className="hidden" 
-                              ref={fileInputRef} 
-                              onChange={handleImageUpload} 
-                            />
-                            <button 
-                              onClick={() => fileInputRef.current?.click()}
-                              className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full"
-                            >
-                              <Camera size={16} />
-                              <span>Upload Custom Identity</span>
-                            </button>
-                          </div>
-                       </div>
+                    {/* Avatar / Identity Selection */}
+                    <div 
+                      className="card p-6 border shadow-sm flex flex-col transition-all duration-500 rounded-2xl relative bg-[#050505] border-border/50 block"
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
+                    >
+                       <h3 className="text-lg font-bold flex items-center gap-2 text-white pb-2 border-b border-white/5 mb-2">
+                         <Camera size={18} className="text-primary" />
+                         Visual Identifier
+                       </h3>
+                       <p className="text-xs text-muted-foreground mb-4">
+                         Select a profile picture and customize the focus area.
+                       </p>
 
-                       {/* System Preferences & Data Management */}
-                       <div 
-                         className={`card p-6 border shadow-sm flex flex-col gap-6 transition-all duration-500 rounded-2xl relative overflow-hidden ${themeBackgrounds ? 'border-transparent' : 'bg-[#050505] border-border/50'}`}
-                         style={themeBackgrounds ? {
-                            background: `linear-gradient(to top right, var(--app-bg-accent-20), var(--app-bg-accent-10), transparent)`,
-                            borderColor: 'var(--app-bg-accent-30)',
-                            boxShadow: `0 0 15px var(--app-bg-accent-20)`
-                         } : undefined}
-                       >
-                          <div>
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                              <Settings size={18} className="text-primary" />
-                              System Preferences
-                            </h3>
-                            
-                             {/* Notifications */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">Telemetry Broadcasts</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Receive system status updates</p>
-                               </div>
-                               <button 
-                                 onClick={() => setNotifications(!notifications)}
-                                 className={`w-11 h-6 rounded-full transition-colors relative ${notifications ? 'bg-primary' : 'bg-white/10'}`}
-                               >
-                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifications ? 'right-1' : 'left-1'}`}></div>
-                               </button>
-                            </div>
-
-                             {/* Quote Box Toggle */}
-                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">Quote of the Day</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle daily motivation box</p>
-                               </div>
-                               <button 
-                                 onClick={() => setShowQuoteBox(!showQuoteBox)}
-                                 className={`w-11 h-6 rounded-full transition-colors relative ${showQuoteBox ? 'bg-primary' : 'bg-white/10'}`}
-                               >
-                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showQuoteBox ? 'right-1' : 'left-1'}`}></div>
-                               </button>
-                            </div>
-
-                            {/* Section Backgrounds Toggle */}
-                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">Orange Section Backgrounds</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle immersive styling for Goals, Projects and Profile</p>
-                               </div>
-                               <button 
-                                 onClick={() => setEnableOrangeBackgrounds(!enableOrangeBackgrounds)}
-                                 className={`w-11 h-6 rounded-full transition-colors relative ${enableOrangeBackgrounds ? 'bg-primary' : 'bg-white/10'}`}
-                               >
-                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${enableOrangeBackgrounds ? 'right-1' : 'left-1'}`}></div>
-                               </button>
-                            </div>
-
-                             {/* Profile & Stats Toggle */}
-                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">Profile & Life Stats</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Toggle visibility on the dashboard</p>
-                               </div>
-                               <button 
-                                 onClick={() => setShowProfileAndStats(!showProfileAndStats)}
-                                 className={`w-11 h-6 rounded-full transition-colors relative ${showProfileAndStats ? 'bg-primary' : 'bg-white/10'}`}
-                               >
-                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showProfileAndStats ? 'right-1' : 'left-1'}`}></div>
-                               </button>
-                            </div>
-
-                             {/* Tab Labels Toggle */}
-                            <div className="mt-4 flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div>
-                                  <p className="text-sm font-medium text-white">Navigation Labels</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Show text labels next to tab icons</p>
-                               </div>
-                               <button 
-                                 onClick={() => setShowTabLabels(!showTabLabels)}
-                                 className={`w-11 h-6 rounded-full transition-colors relative ${showTabLabels ? 'bg-primary' : 'bg-white/10'}`}
-                               >
-                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showTabLabels ? 'right-1' : 'left-1'}`}></div>
-                               </button>
-                            </div>
-
+                       <div className="flex flex-col items-center justify-center gap-4 py-2">
+                          <div 
+                            className={`relative w-32 h-32 rounded-xl border border-primary/40 bg-black/50 overflow-hidden shadow-[0_0_15px_var(--app-bg-accent-20)] flex items-center justify-center select-none touch-none ${customAvatar ? 'cursor-grab active:cursor-grabbing border-primary' : 'cursor-default'}`}
+                            onPointerDown={(e) => {
+                              if (!customAvatar) return;
+                              e.preventDefault();
+                              e.currentTarget.setPointerCapture(e.pointerId);
+                              const startX = e.clientX;
+                              const startY = e.clientY;
+                              const initialX = avatarX;
+                              const initialY = avatarY;
+                              
+                              const onPointerMove = (moveEvt) => {
+                                const dx = moveEvt.clientX - startX;
+                                const dy = moveEvt.clientY - startY;
+                                setAvatarX(Math.max(-150, Math.min(150, initialX + dx)));
+                                setAvatarY(Math.max(-150, Math.min(150, initialY + dy)));
+                              };
+                              
+                              const onPointerUp = () => {
+                                window.removeEventListener('pointermove', onPointerMove);
+                                window.removeEventListener('pointerup', onPointerUp);
+                              };
+                              
+                              window.addEventListener('pointermove', onPointerMove);
+                              window.addEventListener('pointerup', onPointerUp);
+                            }}
+                            onWheel={(e) => {
+                              if (!customAvatar) return;
+                              const delta = -e.deltaY * 0.003;
+                              setAvatarScale((prev) => Math.max(1.0, Math.min(4.0, prev + delta)));
+                            }}
+                          >
+                            {customAvatar ? (
+                              <img 
+                                src={customAvatar} 
+                                alt="Profile Preview" 
+                                className="w-full h-full object-cover transition-transform origin-center select-none pointer-events-none"
+                                style={{ transform: `scale(${avatarScale}) translate(${avatarX}px, ${avatarY}px)` }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30 p-4">
+                                <User size={36} className="text-white/10 mb-2 animate-pulse" />
+                                <span className="text-center text-[9px] tracking-wider uppercase font-semibold">No custom image</span>
+                              </div>
+                            )}
+                            {customAvatar && (
+                              <>
+                                <div className="absolute inset-1.5 border border-dashed border-primary/40 pointer-events-none rounded-lg" />
+                                <div className="absolute inset-x-0 inset-y-0 border-2 border-primary pointer-events-none rounded-xl">
+                                  <div className="absolute top-1 left-2 text-[8px] bg-primary/20 text-primary px-1 rounded uppercase tracking-wider font-mono">Visible Crop</div>
+                                </div>
+                              </>
+                            )}
                           </div>
 
-                          <div>
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                              <LayoutGrid size={18} className="text-primary" />
-                              Color Themes and Background
-                            </h3>
+                          {customAvatar && (
+                            <span className="text-[9px] text-primary/70 font-mono tracking-widest uppercase animate-pulse mt-2 text-center">
+                              ↔↕ DRAG IMAGE TO ADJUST • SCROLL TO ZOOM
+                            </span>
+                          )}
+                        </div>
 
-                             {/* Background Accent Protocol */}
-                             <div className={`mt-4 flex flex-col gap-4 p-4 rounded-xl border transition-all duration-300 ${appBackgroundColor !== appThemeColor ? 'bg-white/[0.04] border-white/20' : 'bg-white/[0.02] border-white/5'}`}>
-                               <div className="flex items-center justify-between gap-4 w-full">
-                                  <div className="flex-1 min-w-0">
-                                     <p className="text-sm font-medium text-white truncate sm:whitespace-normal">Background Accent Protocol</p>
-                                     <p className="text-xs text-muted-foreground mt-0.5 truncate sm:whitespace-normal">Define background decorative spectrum across all tabs</p>
-                                  </div>
-                                  <div className="flex items-center gap-4 shrink-0 ml-auto">
-                                    <input 
-                                      type="color" 
-                                      value={appBackgroundColor}
-                                      onChange={(e) => setAppBackgroundColor(e.target.value)}
-                                      className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent shrink-0"
-                                    />
-                                    <button 
-                                      onClick={() => setThemeBackgrounds(!themeBackgrounds)}
-                                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${themeBackgrounds ? 'bg-primary' : 'bg-white/10'}`}
-                                    >
-                                      <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${themeBackgrounds ? 'right-1' : 'left-1'}`}></div>
-                                    </button>
-                                  </div>
-                               </div>
-                               
-                               <div className="flex items-center gap-2 pt-2 border-t border-white/5 flex-wrap">
-                                 {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF', '#6366f1', '#ec4899'].map((color) => (
-                                   <button
-                                     key={color}
-                                     onClick={() => setAppBackgroundColor(color)}
-                                     className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 shrink-0 ${appBackgroundColor === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent'}`}
-                                     style={{ backgroundColor: color }}
-                                     title={color}
-                                   />
-                                 ))}
-                                 <button 
-                                   onClick={() => setAppBackgroundColor(appThemeColor)}
-                                   className="text-[10px] text-muted-foreground hover:text-white transition-all ml-auto underline whitespace-nowrap"
-                                 >
-                                   Sync with System
-                                 </button>
-                               </div>
+                        <div className="w-full mt-4">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            ref={fileInputRef} 
+                            onChange={handleImageUpload} 
+                          />
+                          <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex justify-center items-center gap-2 px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-all cursor-pointer w-full"
+                          >
+                            <Upload size={14} className="text-primary" />
+                            <span>{customAvatar ? "Choose Different Image" : "Select from device"}</span>
+                          </button>
+                        </div>
+
+                       {customAvatar && (
+                         <div className="bg-black/35 border border-white/5 rounded-xl p-4 space-y-4 mt-6">
+                           <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                             <span className="text-[10px] font-mono text-primary/80 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                               <GripVertical size={12} className="text-primary animate-pulse" />
+                               Crop / Adjust Position
+                             </span>
+                             <button
+                               onClick={() => {
+                                 setAvatarScale(1.0);
+                                 setAvatarX(0);
+                                 setAvatarY(0);
+                               }}
+                               className="text-[10px] text-muted-foreground/80 hover:text-white font-mono uppercase tracking-wider underline underline-offset-2 transition-colors cursor-pointer"
+                             >
+                               Reset View
+                             </button>
+                           </div>
+
+                           <div className="space-y-1">
+                             <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                               <span>ZOOM / SCALE</span>
+                               <span className="text-primary font-bold">{Math.round(avatarScale * 100)}%</span>
                              </div>
+                             <input 
+                               type="range"
+                               min="1"
+                               max="3"
+                               step="0.05"
+                               value={avatarScale}
+                               onChange={(e) => setAvatarScale(parseFloat(e.target.value))}
+                               className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                             />
+                           </div>
 
-                             {/* Theme Color Input */}
-                            <div className="mt-4 flex flex-col gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                               <div className="flex items-center justify-between">
-                                  <div>
-                                     <p className="text-sm font-medium text-white">System Color Protocol</p>
-                                     <p className="text-xs text-muted-foreground mt-0.5">Define core aesthetic spectrum</p>
-                                  </div>
-                                  <input 
-                                    type="color" 
-                                    value={appThemeColor}
-                                    onChange={(e) => setAppThemeColor(e.target.value)}
-                                    className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent"
-                                  />
-                               </div>
-                               
-                               <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                                 {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF'].map((color) => (
-                                   <button
-                                     key={color}
-                                     onClick={() => setAppThemeColor(color)}
-                                     className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${appThemeColor === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent'}`}
-                                     style={{ backgroundColor: color }}
-                                     title={color}
-                                   />
-                                 ))}
-                               </div>
-                            </div>
-                          </div>
+                           <div className="space-y-1 mt-2">
+                             <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                               <span>HORIZONTAL OFFSET</span>
+                               <span className="text-primary font-bold">{avatarX}px</span>
+                             </div>
+                             <input 
+                               type="range"
+                               min="-100"
+                               max="100"
+                               step="1"
+                               value={avatarX}
+                               onChange={(e) => setAvatarX(parseInt(e.target.value))}
+                               className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                             />
+                           </div>
 
+                           <div className="space-y-1 mt-2">
+                             <div className="flex justify-between text-[10px] font-mono text-muted-foreground/80">
+                               <span>VERTICAL OFFSET</span>
+                               <span className="text-primary font-bold">{avatarY}px</span>
+                             </div>
+                             <input 
+                               type="range"
+                               min="-100"
+                               max="100"
+                               step="1"
+                               value={avatarY}
+                               onChange={(e) => setAvatarY(parseInt(e.target.value))}
+                               className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                             />
+                           </div>
+                         </div>
+                       )}
+                    </div>
+                  </div>
+
+                  {/* MIDDLE COL: SYSTEM BEHAVIORS */}
+                  <div className="flex flex-col gap-6 lg:col-span-1">
+                    <div 
+                      className="card p-6 border shadow-sm flex flex-col gap-5 transition-all duration-500 rounded-2xl relative overflow-hidden bg-[#050505] border-border/50 h-full"
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
+                    >
+                       <h3 className="text-lg font-bold flex items-center gap-2 text-white pb-2 border-b border-white/5">
+                         <Settings size={18} className="text-primary" />
+                         System Behaviors
+                       </h3>
+                       
+                       <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5 transition-all hover:bg-white/[0.04]">
                           <div>
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-                              <Activity size={18} className="text-primary" />
-                              Data Portability
-                            </h3>
-                            <div className="flex flex-col gap-3">
-                               <input 
-                                 type="file" 
-                                 accept=".zip" 
-                                 className="hidden" 
-                                 ref={dataImportRef} 
-                                 onChange={importData} 
-                               />
-                               <button 
-                                onClick={() => dataImportRef.current?.click()}
-                                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-all text-sm font-medium text-white/90"
-                               >
-                                 <Upload size={16} /> Ingest Data Archive
-                               </button>
-                               <button 
-                                onClick={exportData}
-                                className="flex items-center justify-center gap-2 w-full p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-all text-sm font-medium text-white/90"
-                               >
-                                 <Download size={16} /> Extract Data Archive
-                               </button>
-                            </div>
+                             <p className="text-sm font-medium text-white">Telemetry Broadcasts</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Receive system status updates</p>
                           </div>
+                          <button 
+                            onClick={() => setNotifications(!notifications)}
+                            className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${notifications ? 'bg-primary' : 'bg-white/10'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${notifications ? 'right-1' : 'left-1'}`}></div>
+                          </button>
                        </div>
-                   </div>
+
+                       <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5 transition-all hover:bg-white/[0.04]">
+                          <div>
+                             <p className="text-sm font-medium text-white">Quote of the Day</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Toggle daily motivation box</p>
+                          </div>
+                          <button 
+                            onClick={() => setShowQuoteBox(!showQuoteBox)}
+                            className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${showQuoteBox ? 'bg-primary' : 'bg-white/10'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showQuoteBox ? 'right-1' : 'left-1'}`}></div>
+                          </button>
+                       </div>
+
+                       <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5 transition-all hover:bg-white/[0.04]">
+                          <div>
+                             <p className="text-sm font-medium text-white">Profile & Life Stats</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Toggle dashboard header stats</p>
+                          </div>
+                          <button 
+                            onClick={() => setShowProfileAndStats(!showProfileAndStats)}
+                            className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${showProfileAndStats ? 'bg-primary' : 'bg-white/10'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showProfileAndStats ? 'right-1' : 'left-1'}`}></div>
+                          </button>
+                       </div>
+
+                       <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5 transition-all hover:bg-white/[0.04]">
+                          <div>
+                             <p className="text-sm font-medium text-white">Navigation Labels</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">Show text labels next to tab icons</p>
+                          </div>
+                          <button 
+                            onClick={() => setShowTabLabels(!showTabLabels)}
+                            className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${showTabLabels ? 'bg-primary' : 'bg-white/10'}`}
+                          >
+                            <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${showTabLabels ? 'right-1' : 'left-1'}`}></div>
+                          </button>
+                       </div>
+
+                       <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl transition-all hover:bg-white/[0.04]">
+                         <div className="flex-1 min-w-0 pr-4">
+                           <p className="text-sm font-medium text-white truncate sm:whitespace-normal">Snowfall Effect</p>
+                           <p className="text-xs text-muted-foreground mt-0.5 truncate sm:whitespace-normal">Enable decorative snowfall overlay</p>
+                         </div>
+                         <button 
+                           onClick={() => setEnableSnowfall(!enableSnowfall)}
+                           className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${enableSnowfall ? 'bg-primary' : 'bg-white/10'}`}
+                         >
+                           <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all ${enableSnowfall ? 'right-1' : 'left-1'}`}></div>
+                         </button>
+                       </div>
+
+                    </div>
+                  </div>
+
+                  {/* RIGHT COL: AESTHETICS & DATA */}
+                  <div className="flex flex-col gap-6 lg:col-span-1">
+                    <div 
+                      className="card p-6 border shadow-sm flex flex-col gap-6 transition-all duration-500 rounded-2xl relative overflow-hidden bg-[#050505] border-border/50"
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
+                    >
+                       <h3 className="text-lg font-bold flex items-center gap-2 text-white pb-2 border-b border-white/5">
+                         <LayoutGrid size={18} className="text-primary" />
+                         Aesthetics
+                       </h3>
+                       
+                       <div className={`flex flex-col gap-4 p-5 rounded-xl border transition-all duration-300 ${appBackgroundColor !== appThemeColor ? 'bg-white/[0.04] border-white/20' : 'bg-white/[0.02] border-white/5'}`}>
+                         <div className="flex items-center justify-between gap-4 w-full">
+                            <div className="flex-1 min-w-0">
+                               <p className="text-sm font-medium text-white truncate sm:whitespace-normal">System Glow</p>
+                               <p className="text-[11px] text-muted-foreground mt-1 truncate sm:whitespace-normal">Ambient background tint</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <label className="w-10 h-10 rounded-lg cursor-pointer border border-white/10 p-0 overflow-hidden relative shadow-lg">
+                                <input 
+                                  type="color" 
+                                  value={appBackgroundColor}
+                                  onChange={(e) => setAppBackgroundColor(e.target.value)}
+                                  className="absolute -top-4 -left-4 w-20 h-20 cursor-pointer border-0 bg-transparent"
+                                />
+                              </label>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-2 pt-3 border-t border-white/5 flex-wrap">
+                           {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF', '#6366f1', '#ec4899', '#14F195', '#00ff00'].map((color) => (
+                             <button
+                               key={color}
+                               onClick={() => setAppBackgroundColor(color)}
+                               className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 shrink-0 ${appBackgroundColor === color ? 'border-white scale-110 shadow-[0_0_10px_var(--app-bg-accent)]' : 'border-transparent'}`}
+                               style={{ backgroundColor: color }}
+                               title={color}
+                             />
+                           ))}
+                           <button 
+                             onClick={() => setAppBackgroundColor(appThemeColor)}
+                             className="text-[10px] font-mono text-muted-foreground hover:text-white transition-all ml-auto underline whitespace-nowrap pt-1 uppercase tracking-wider"
+                           >
+                             Sync Root
+                           </button>
+                         </div>
+                       </div>
+
+                       <div className="flex flex-col gap-4 p-5 rounded-xl bg-white/[0.02] border border-white/5">
+                         <div className="flex items-center justify-between">
+                            <div>
+                               <p className="text-sm font-medium text-white">System Protocol</p>
+                               <p className="text-[11px] text-muted-foreground mt-1">Core primary spectrum</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <label className="w-10 h-10 rounded-lg cursor-pointer border border-white/10 p-0 overflow-hidden relative shadow-lg">
+                                <input 
+                                  type="color" 
+                                  value={appThemeColor}
+                                  onChange={(e) => setAppThemeColor(e.target.value)}
+                                  className="absolute -top-4 -left-4 w-20 h-20 cursor-pointer border-0 bg-transparent"
+                                />
+                              </label>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-2 pt-3 border-t border-white/5 flex-wrap">
+                           {['#ff6a00', '#2EDC85', '#32C759', '#0AFFFF', '#6366f1', '#ec4899', '#14F195', '#00ff00'].map((color) => (
+                             <button
+                               key={color}
+                               onClick={() => setAppThemeColor(color)}
+                               className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${appThemeColor === color ? 'border-white scale-110 shadow-[0_0_10px_var(--app-bg-accent)]' : 'border-transparent'}`}
+                               style={{ backgroundColor: color }}
+                               title={color}
+                             />
+                           ))}
+                         </div>
+                       </div>
+                    </div>
+
+                    <div 
+                      className="card p-6 border shadow-sm flex flex-col gap-4 transition-all duration-500 rounded-2xl relative overflow-hidden bg-[#050505] border-border/50"
+                      style={{ boxShadow: '0 0 15px var(--app-bg-accent-20)', borderColor: 'var(--app-bg-accent-30)' }}
+                    >
+                       <h3 className="text-lg font-bold flex items-center gap-2 text-white pb-2 border-b border-white/5">
+                         <Activity size={18} className="text-primary" />
+                         Data Portability
+                       </h3>
+                       <div className="flex flex-col gap-3">
+                          <input 
+                            type="file" 
+                            accept=".zip" 
+                            className="hidden" 
+                            ref={dataImportRef} 
+                            onChange={importData} 
+                          />
+                          <button 
+                           onClick={() => dataImportRef.current?.click()}
+                           className="flex items-center justify-center gap-2 w-full p-3.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:text-white transition-all text-sm font-bold tracking-wide text-white/90 shadow-sm"
+                          >
+                            <Upload size={16} className="text-primary" /> Ingest Data
+                          </button>
+                          <button 
+                           onClick={exportData}
+                           className="flex items-center justify-center gap-2 w-full p-3.5 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:text-white transition-all text-sm font-bold tracking-wide text-white/90 shadow-sm"
+                          >
+                            <Download size={16} className="text-primary" /> Extract Data
+                          </button>
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2955,7 +3020,7 @@ export default function App() {
                       </div>
                       <button 
                          onClick={() => deleteEvent(event.id)}
-                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 rounded-md transition-all sm:opacity-0 sm:group-hover:opacity-100"
+                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-all sm:opacity-0 sm:group-hover:opacity-100"
                          title="Delete Log"
                        >
                          <Trash2 size={16} />
