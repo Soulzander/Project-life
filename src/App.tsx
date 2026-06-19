@@ -1567,13 +1567,21 @@ export default function App() {
           <div className="w-full flex justify-between items-center bg-black/40 border border-white/5 backdrop-blur-md p-4 rounded-2xl shadow-sm">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 md:h-16 md:w-16 rounded-xl overflow-hidden shadow-[0_0_15px_var(--app-bg-accent-30)] border border-primary/20 bg-black flex items-center justify-center">
-                 <img 
-                   src={customAvatar || fallbackMobileImg} 
-                   alt={operativeName || "User Profile"} 
-                   className="w-full h-full object-cover filter drop-shadow-md origin-center" 
-                   style={{ transform: `scale(${avatarScale}) translate(${avatarX}px, ${avatarY}px)` }}
-                   referrerPolicy="no-referrer"
-                 />
+                 {customAvatar ? (
+                   <img 
+                     src={customAvatar} 
+                     alt={operativeName || "User Profile"} 
+                     className="w-full h-full object-cover filter drop-shadow-md origin-center" 
+                     style={{ transform: `scale(${avatarScale}) translate(${avatarX}px, ${avatarY}px)` }}
+                     referrerPolicy="no-referrer"
+                   />
+                 ) : (
+                   <div className="w-full h-full bg-black flex items-center justify-center">
+                     <svg viewBox="0 0 100 100" className="w-1/2 h-1/2 drop-shadow-[0_0_8px_var(--app-bg-accent)]">
+                       <polygon points="50,15 90,85 10,85" fill={appThemeColor} />
+                     </svg>
+                   </div>
+                 )}
               </div>
               <div className="flex flex-col">
                 <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-primary/80 tracking-tighter uppercase leading-none">
